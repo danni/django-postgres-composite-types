@@ -1,1 +1,6 @@
 setuptools-scm
+
+pep8
+pylint
+pylint_mccabe
+pylint_django

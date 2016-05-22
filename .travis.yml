@@ -1,0 +1,31 @@
+language: python
+python:
+- '3.4'
+- '3.5'
+
+install:
+- pip install -r requirements.in
+- pip install -r test_requirements.in
+
+cache:
+  directories:
+  - $HOME/virtualenv
+
+script:
+- pep8 .
+- pylint postgres_composite_types
+- make -C docs
+
+sudo: false
+
+deploy:
+  provider: pypi
+  user: danni
+  password:
+    secure: fmD6F6RZ7fgzLX2ugQUokz5C3VpUsK7FBU4kPiyhE3MXbEY1D8nJSEB3oZv8ayl7AJ1qZgNPznraNsga532yyVHSju5xqwJwrCYS4b2HvNDw7xR2Iu/5uQ3wkl8wYPhZxOpdbAwG8TRRqbekkbiLsqJJxGX4xcaOjStrrbO7YG/7ANoeNwgtQjDKn7+eGtCU0kUXcO8K7pTLXL6VstmzapNFh0uSjmR27QdBgceoixwjQ7i6MmLpNNLqTA4TP5MU+XryvM5tfwlEvmLyqY38HeROS1z8pGJ8fUx/H3Balsp8oWCRyNpQ+Tejpcuoyi7eNa6I3kFh9bbNcyK1xy9I746iiLlg2VBXl8Ahl/niUb3k1ANKadXOzieDee8tJQIyfgZ2/xUPCVhohK7nSvwgaa3VjkNMwLRIUEqiWVAJpyNdvH4uIzdbyOuP8q/Dxt8cUmz7n5Y/B/PLYHQBpaqrsOs+ox27KE7P0OFhZZj6Ogv4Jytap5TTmcHvtnDjD5FZfiLbw6NSqj42wUx/0ZC7lLkK59zeGoKszVNI9LKZ9i3vCEYGoiWlciweNPWt+l5kjL76K8xY6xSC0SnfYeaR64xeu3e9zyhXYRJbjVp7WIJhyYx0L2sgUqJPqy9p4o5D8cJbOWcmWX3k8ZnysOQEXoypci25ISaaQN8bCCd1qy0=
+  server: https://pypi.python.org/pypi
+  on:
+    tags: true
+    all_branches: true
+    python: 3.5
+    condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)"'
