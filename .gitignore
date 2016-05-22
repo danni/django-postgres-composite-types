@@ -1,3 +1,5 @@
 /build/
 /dist/
 /django_postgres_composite_types.egg-info/
+/requirements.txt
+/test_requirements.txt
