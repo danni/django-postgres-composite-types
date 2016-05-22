@@ -13,7 +13,8 @@ cache:
 
 script:
 - pep8 .
-- pylint postgres_composite_types
+- pylint postgres_composite_types tests
+- nosetests || nosetests  # It runs the second time because it's dodgy
 # - make -C docs
 
 sudo: false
