@@ -63,7 +63,16 @@ class BaseField(models.Field):
         return self.Meta.db_type
 
     def to_python(self, value):
-        LOGGER.debug("to_python: %s", value)
+        LOGGER.debug("to_python: > %s", value)
+
+        if isinstance(value, dict):
+            value = self.Meta.model(**value)
+        else:
+            pass
+
+        LOGGER.debug("to_python: < %s", value)
+
+        return value
 
     def from_db_value(self, value, expression, connection, context):
         """Convert the DB value into a Python type."""
@@ -97,6 +106,22 @@ class BaseField(models.Field):
                      value, type(value))
 
         return value
+
+    def formfield(self, **kwargs):
+        """Form field for address."""
+        from .forms import CompositeTypeField, CompositeTypeWidget
+
+        defaults = {
+            'form_class': CompositeTypeField,
+            'model': self.Meta.model,
+            'fields': [
+                (name, field.formfield())
+                for name, field in self.Meta.fields
+            ],
+        }
+        defaults.update(kwargs)
+
+        return super().formfield(**defaults)
 
 
 class BaseOperation(migrations.operations.base.Operation):
@@ -150,12 +175,14 @@ class CompositeTypeMeta(type):
 
         # retrieve any fields from our declaration
         fields = []
-        for key, value in attrs.copy().items():
+        for name, value in attrs.copy().items():
             if isinstance(value, models.fields.related.RelatedField):
                 raise TypeError("Composite types cannot contain "
                                 "related fields")
             elif isinstance(value, models.Field):
-                fields.append((key, attrs.pop(key)))
+                field = attrs.pop(name)
+                field.set_attributes_from_name(name)
+                fields.append((name, field))
 
         # retrieve the Meta from our declaration
         meta_obj = attrs.pop('Meta', object())
@@ -219,10 +246,10 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
         )
 
     def __to_dict__(self):
-        return {
-            name: field.get_prep_value(getattr(self, name))
+        return OrderedDict(
+            (name, field.get_prep_value(getattr(self, name)))
             for name, field in self._meta.fields
-        }
+        )
 
     class Field(BaseField):
         """
