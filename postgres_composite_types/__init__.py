@@ -58,6 +58,12 @@ class BaseField(models.Field):
             raise RuntimeError("Composite types are only available "
                                "for postgres")
 
+        # FIXME: this is called too late for the very first request
+        # not sure how to resolve that
+        register_composite(self.Meta.db_type,
+                           connection.connection,
+                           globally=True)
+
         return self.Meta.db_type
 
     def get_db_converters(self, connection):
