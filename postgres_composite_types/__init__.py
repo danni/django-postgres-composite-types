@@ -51,16 +51,25 @@ class BaseField(models.Field):
     Meta = None
 
     def db_type(self, connection):
+        LOGGER.debug("db_type")
+
         if connection.settings_dict['ENGINE'] != \
                 'django.db.backends.postgresql':
             raise RuntimeError("Composite types are only available "
                                "for postgres")
 
+        return self.Meta.db_type
+
+    def get_db_converters(self, connection):
+        LOGGER.debug("db_converters")
+
+        # FIXME: this is called too late for the very first request
+        # not sure how to resolve that
         register_composite(self.Meta.db_type,
                            connection.connection,
                            globally=True)
 
-        return self.Meta.db_type
+        return super().get_db_converters(connection)
 
     def to_python(self, value):
         LOGGER.debug("to_python: > %s", value)
