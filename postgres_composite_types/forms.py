@@ -67,7 +67,7 @@ class CompositeTypeField(forms.Field):
     def clean(self, value):
         LOGGER.debug("clean: > %s", value)
 
-        if all(elem is None for elem in value.values()):
+        if all(elem is None or elem == '' for elem in value.values()):
             if self.required:
                 raise forms.ValidationError("This section is required",
                                             code='incomplete')
@@ -83,6 +83,9 @@ class CompositeTypeField(forms.Field):
         LOGGER.debug("clean: < %s", value)
 
         return value
+
+    def has_changed(self, initial, data):
+        return initial != data
 
 
 class CompositeTypeWidget(forms.Widget):
@@ -115,7 +118,7 @@ class CompositeTypeWidget(forms.Widget):
                 final_attrs = dict(final_attrs, id='%s_%s' % (id_, subname))
 
             output.append(widget.render('%s_%s' % (name, subname),
-                                        getattr(value, subname),
+                                        getattr(value, subname, None),
                                         final_attrs))
 
         return mark_safe(''.join(output))

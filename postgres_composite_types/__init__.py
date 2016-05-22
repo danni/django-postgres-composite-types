@@ -83,7 +83,7 @@ class BaseField(models.Field):
         else:
             pass
 
-        LOGGER.debug("from_db_value: < %s", value)
+        LOGGER.debug("from_db_value: < %s (%s)", value, type(value))
 
         return value
 
@@ -175,14 +175,14 @@ class CompositeTypeMeta(type):
 
         # retrieve any fields from our declaration
         fields = []
-        for name, value in attrs.copy().items():
+        for field_name, value in attrs.copy().items():
             if isinstance(value, models.fields.related.RelatedField):
                 raise TypeError("Composite types cannot contain "
                                 "related fields")
             elif isinstance(value, models.Field):
-                field = attrs.pop(name)
-                field.set_attributes_from_name(name)
-                fields.append((name, field))
+                field = attrs.pop(field_name)
+                field.set_attributes_from_name(field_name)
+                fields.append((field_name, field))
 
         # retrieve the Meta from our declaration
         meta_obj = attrs.pop('Meta', object())
