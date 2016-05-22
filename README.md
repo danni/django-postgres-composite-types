@@ -1,12 +1,11 @@
 Django Postgres composite types
 ===============================
 
-An implementation of Postgres' `composite types`_ for Django_.
+An implementation of Postgres' [composite types](http://www.postgresql.org/docs/current/static/rowtypes.html)
+for [Django](https://docs.djangoproject.com/en/1.9/).
 
 Usage
 -----
-
-::
 
     from django.db import models
     from postgres_composite_type import CompositeType
@@ -32,7 +31,7 @@ Usage
 
         address = Address.Field()
 
-::
+An operation needs to be prepended to your migration:
 
     import address
     from django.db import migrations
@@ -53,7 +52,7 @@ Usage
 Authors
 -------
 
- * Danielle Madeley <danielle@madeley.id.au>
+* Danielle Madeley <danielle@madeley.id.au>
 
 License
 -------
@@ -86,6 +85,3 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-.. _`composite_types`: http://www.postgresql.org/docs/current/static/rowtypes.html
-.. _Django: https://docs.djangoproject.com/en/1.9/

@@ -8,7 +8,7 @@ if __name__ == '__main__':
     with \
             open('requirements.in') as requirements, \
             open('test_requirements.in') as test_requirements, \
-            open('README.rst') as readme:
+            open('README.md') as readme:
         setup(
             name='django-postgres-composite-types',
             description='Postgres composite types support for Django',
