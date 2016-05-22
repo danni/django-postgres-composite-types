@@ -2,23 +2,17 @@ language: python
 python:
 - '3.4'
 - '3.5'
-
 install:
 - pip install -r requirements.in
 - pip install -r test_requirements.in
-
 cache:
   directories:
   - $HOME/virtualenv
-
 script:
 - pep8 .
 - pylint postgres_composite_types tests
-- nosetests || nosetests  # It runs the second time because it's dodgy
-# - make -C docs
-
+- nosetests || nosetests
 sudo: false
-
 deploy:
   provider: pypi
   user: danni

@@ -7,6 +7,12 @@ for [Django](https://docs.djangoproject.com/en/1.9/).
 Usage
 -----
 
+Install with:
+
+    pip install django-postgres-composite-types
+
+Define a type and add it to a model:
+
     from django.db import models
     from postgres_composite_type import CompositeType
 
