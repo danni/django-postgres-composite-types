@@ -57,7 +57,7 @@ class BaseField(models.Field):
     def db_type(self, connection):
         LOGGER.debug("db_type")
 
-        if not isinstnace(connection, PostgresDatabaseWrapper):
+        if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available "
                                "for postgres")
 
@@ -248,6 +248,7 @@ def lazy_register(signal, sender, **kwargs):
     Register a CompositeType with Postgres after it has been migrated.
     """
     sender.register_composite()
+    composite_type_created.disconnect(lazy_register, sender=sender)
 
 
 # pylint:disable=invalid-name
