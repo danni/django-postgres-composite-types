@@ -67,7 +67,8 @@ class CompositeTypeField(forms.Field):
     def clean(self, value):
         LOGGER.debug("clean: > %s", value)
 
-        if all(elem is None or elem == '' for elem in value.values()):
+        if all(value.get(name) in field.empty_values
+               for name, field in self.fields.items()):
             if self.required:
                 raise forms.ValidationError("This section is required",
                                             code='incomplete')
@@ -115,9 +116,9 @@ class CompositeTypeWidget(forms.Widget):
 
         for subname, widget in self.widgets.items():
             if id_:
-                final_attrs = dict(final_attrs, id='%s_%s' % (id_, subname))
+                final_attrs = dict(final_attrs, id='%s-%s' % (id_, subname))
 
-            output.append(widget.render('%s_%s' % (name, subname),
+            output.append(widget.render('%s-%s' % (name, subname),
                                         getattr(value, subname, None),
                                         final_attrs))
 
@@ -126,6 +127,6 @@ class CompositeTypeWidget(forms.Widget):
     def value_from_datadict(self, data, files, name):
         return {
             subname: widget.value_from_datadict(data, files,
-                                                '%s_%s' % (name, subname))
+                                                '%s-%s' % (name, subname))
             for subname, widget in self.widgets.items()
         }
