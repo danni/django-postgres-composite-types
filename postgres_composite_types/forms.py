@@ -32,13 +32,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Takes inspiration from django.forms.MultiValueField/MultiWidget.
 """
 
+import copy
 import logging
 from collections import OrderedDict
 
 from django import forms
 from django.utils.safestring import mark_safe
 
+from . import CompositeType
+
 LOGGER = logging.getLogger(__name__)
+
+
+class CompositeBoundField(forms.BoundField):
+    """
+    Allow access to nested BoundFields for fields. Useful for customising the
+    rendering of a CompositeTypeField:
+
+        <label for="{{ form.address.id_for_widget }}">Address:</label>
+        {{ form.address.address_1 }}
+        {{ form.address.address_2 }}
+        <label for="{{ form.address.suburb }}">Suburb:</label>
+        {{ form.address.suburb }}
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._bound_fields_cache = {}
+
+        initial = self.form.initial.get(self.name, self.field.initial)
+        if isinstance(initial, CompositeType):
+            initial = initial.__to_dict__()
+
+        if self.form.is_bound:
+            data = self.form.data
+        else:
+            data = None
+
+        self.composite_form = forms.Form(data=data, initial=initial,
+                                         prefix=self.name)
+        self.composite_form.fields = copy.deepcopy(self.field.fields)
+
+    def __getitem__(self, name):
+        "Returns a BoundField with the given name."
+        return self.composite_form[name]
 
 
 class CompositeTypeField(forms.Field):
@@ -88,6 +124,13 @@ class CompositeTypeField(forms.Field):
     def has_changed(self, initial, data):
         return initial != data
 
+    def get_bound_field(self, form, field_name):
+        """
+        Return a CompositeBoundField instance that will be used when accessing
+        the fields in a template.
+        """
+        return CompositeBoundField(form, self, field_name)
+
 
 class CompositeTypeWidget(forms.Widget):
     """
@@ -130,3 +173,15 @@ class CompositeTypeWidget(forms.Widget):
                                                 '%s-%s' % (name, subname))
             for subname, widget in self.widgets.items()
         }
+
+    def id_for_label(self, id_):
+        """
+        Wrapper around the field widget's `id_for_label` method.
+        Useful, for example, for focusing on this field regardless of whether
+        it has a single widget or a MultiWidget.
+        """
+        if id_:
+            name = next(iter(self.widgets.keys()))
+            return '%s-%s' % (id_, name)
+
+        return id_
