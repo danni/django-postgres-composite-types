@@ -3,16 +3,17 @@ python:
 - '3.4'
 - '3.5'
 install:
-- pip install -r requirements.in
-- pip install -r test_requirements.in
+- pip install -e . -r requirements.in -r test_requirements.in
 cache:
   directories:
   - $HOME/virtualenv
+env:
+ - DJANGO_SETTINGS_MODULE=tests.settings
 script:
 - pep8 .
 - isort --recursive --check-only --diff postgres_composite_types tests
 - pylint postgres_composite_types tests
-- nosetests || nosetests
+- django-admin.py test
 sudo: false
 deploy:
   provider: pypi
