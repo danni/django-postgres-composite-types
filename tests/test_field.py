@@ -2,11 +2,9 @@
 
 import datetime
 
-from django.db import models, connection
-from django.test import TestCase, TransactionTestCase
+from django.db import connection, models
 from django.db.migrations.executor import MigrationExecutor
-
-
+from django.test import TestCase, TransactionTestCase
 from django_fake_model.models import FakeModel
 
 from postgres_composite_types import CompositeType
