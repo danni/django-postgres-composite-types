@@ -51,10 +51,6 @@ class TestMigrations(TransactionTestCase):
         """Data data migration."""
         from django.apps import apps
 
-        # cursor = connection.connection.cursor()
-        # cursor.execute("DELETE FROM django_migrations WHERE app='tests'")
-        # cursor.execute("DROP TYPE IF EXISTS test_type")
-
         self.migrate_to = [(self.app, self.migrate_to)]
         executor = MigrationExecutor(connection)
 
@@ -62,8 +58,6 @@ class TestMigrations(TransactionTestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
-
-        super().setUp()
 
 
 @TestModel.fake_me
