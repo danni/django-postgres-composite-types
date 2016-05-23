@@ -1,5 +1,3 @@
-setuptools-scm
-
 nose
 django_fake_model
 

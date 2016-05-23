@@ -1,2 +1,4 @@
 Django >= 1.9
 psycopg2
+
+setuptools-scm
