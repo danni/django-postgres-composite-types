@@ -62,7 +62,11 @@ class CompositeBoundField(forms.BoundField):
         initial = self.form.initial.get(self.name, self.field.initial)
         if isinstance(initial, CompositeType):
             initial = initial.__to_dict__()
-        data = self.form.data if self.form.is_bound else None
+
+        if self.form.is_bound:
+            data = self.form.data
+        else:
+            data = None
 
         self.composite_form = forms.Form(data=data, initial=initial,
                                          prefix=self.name)
@@ -92,7 +96,6 @@ class CompositeTypeField(forms.Field):
         for field, widget in zip(fields.values(),
                                  self.widget.widgets.values()):
             widget.attrs['placeholder'] = field.label
-
 
     def validate(self, value):
         pass
@@ -180,4 +183,5 @@ class CompositeTypeWidget(forms.Widget):
         if id_:
             name = next(iter(self.widgets.keys()))
             return '%s-%s' % (id_, name)
+
         return id_
