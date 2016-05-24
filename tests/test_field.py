@@ -10,25 +10,7 @@ from django_fake_model.models import FakeModel
 
 from postgres_composite_types import CompositeType, composite_type_created
 
-
-class TestType(CompositeType):
-    """A test type."""
-    # pylint:disable=invalid-name
-    a = models.IntegerField()
-    b = models.CharField(max_length=32)
-    c = models.DateTimeField()
-
-    class Meta:
-        db_type = 'test_type'
-
-
-class TestModel(FakeModel):
-    """A test model."""
-    # pylint:disable=invalid-name
-    test_field = TestType.Field()
-
-    class Meta:
-        app_label = 'test'
+from .base import SimpleModel, SimpleType
 
 
 class TestMigrations(TransactionTestCase):
@@ -73,17 +55,17 @@ class TestMigrations(TransactionTestCase):
 
         # The migrations have already been run, and the type already exists in
         # the database
-        self.assertTrue(self.does_type_exist(TestType._meta.db_type))
+        self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
 
         # Run the migration backwards to check the type is deleted
         self.migrate(self.migrate_from)
 
         # The type should now not exist
-        self.assertFalse(self.does_type_exist(TestType._meta.db_type))
+        self.assertFalse(self.does_type_exist(SimpleType._meta.db_type))
 
         # A signal is fired when the migration creates the type
         signal_func = mock.Mock()
-        composite_type_created.connect(receiver=signal_func, sender=TestType)
+        composite_type_created.connect(receiver=signal_func, sender=SimpleType)
 
         # Run the migration forwards to create the type again
         self.migrate(self.migrate_to)
@@ -91,41 +73,43 @@ class TestMigrations(TransactionTestCase):
         # The signal should have been sent
         self.assertEqual(signal_func.call_count, 1)
         self.assertEqual(signal_func.call_args, ((), {
-            'sender': TestType,
+            'sender': SimpleType,
             'signal': composite_type_created,
             'connection': connection}))
 
         # The type should now exist again
-        self.assertTrue(self.does_type_exist(TestType._meta.db_type))
+        self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
 
 
-@TestModel.fake_me
+@SimpleModel.fake_me
 class FieldTests(TestCase):
     """Tests for composite field."""
 
     def test_field_save_and_load(self):
         """Save and load a test model."""
         # pylint:disable=invalid-name
-        t = TestType(a=1, b="b", c=datetime.datetime(1985, 10, 26, 9, 0))
-        m = TestModel(test_field=t)
+        t = SimpleType(a=1, b="b", c=datetime.datetime(1985, 10, 26, 9, 0))
+        m = SimpleModel(test_field=t)
         m.save()  # pylint:disable=no-member
 
         # Retrieve from DB
-        m = TestModel.objects.get(id=1)
+        m = SimpleModel.objects.get(id=1)
         self.assertIsNotNone(m.test_field)
-        self.assertIsInstance(m.test_field, TestType)
+        self.assertIsInstance(m.test_field, SimpleType)
         self.assertEqual(m.test_field.a, 1)
         self.assertEqual(m.test_field.b, "b")
         self.assertEqual(m.test_field.c, datetime.datetime(1985, 10, 26, 9, 0))
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).a FROM test_testmodel")
+        cursor.execute("SELECT (test_field).a FROM %s" % (
+            SimpleModel._meta.db_table,))
         result, = cursor.fetchone()
 
         self.assertEqual(result, 1)
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).b FROM test_testmodel")
+        cursor.execute("SELECT (test_field).b FROM %s" % (
+            SimpleModel._meta.db_table,))
         result, = cursor.fetchone()
 
         self.assertEqual(result, "b")
