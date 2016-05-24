@@ -10,6 +10,7 @@ cache:
   - $HOME/virtualenv
 script:
 - pep8 .
+- isort --recursive --check-only --diff postgres_composite_types tests
 - pylint postgres_composite_types tests
 - nosetests || nosetests
 sudo: false

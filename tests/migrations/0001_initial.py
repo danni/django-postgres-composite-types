@@ -4,6 +4,7 @@ Migration to create custom types
 """
 
 from django.db import migrations
+
 from ..test_field import TestType
 
 
