@@ -1,4 +1,5 @@
 nose
+django-nose
 django_fake_model
 
 pep8

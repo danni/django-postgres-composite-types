@@ -1,13 +1,14 @@
 """Tests for composite field."""
 
 import datetime
+from unittest import mock
 
 from django.db import connection, models
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from django_fake_model.models import FakeModel
 
-from postgres_composite_types import CompositeType
+from postgres_composite_types import CompositeType, composite_type_created
 
 
 class TestType(CompositeType):
@@ -38,26 +39,64 @@ class TestMigrations(TransactionTestCase):
     FIXME: the ordering of the tests is totally broken.
     """
 
-    @property
-    def app(self):
-        """App."""
-        from django.apps import apps
+    app = 'tests'
+    migrate_from = [('tests', None)]  # Before the first migration
+    migrate_to = [('tests', '0001_initial')]
 
-        return apps.get_containing_app_config(type(self).__module__).name
+    def does_type_exist(self, type_name):
+        """
+        Check if a composite type exists in the database
+        """
+        sql = 'select exists (select 1 from pg_type where typname = %s);'
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [type_name])
+            row = cursor.fetchone()
+            return row[0]
 
-    migrate_to = '0001_initial'
+    def migrate(self, targets):
+        """
+        Migrate to a new state.
+
+        MigrationExecutors can not be reloaded, as they cache the state of the
+        migrations when created. Attempting to reuse one might make some
+        migrations not run, as it thinks they have already been run.
+        """
+        executor = MigrationExecutor(connection)
+        executor.migrate(targets)
+
+        # Cant load state for apps in the initial empty state
+        state_nodes = [node for node in targets if node[1] is not None]
+        return executor.loader.project_state(state_nodes).apps
 
     def test_migration(self):
         """Data data migration."""
-        from django.apps import apps
 
-        self.migrate_to = [(self.app, self.migrate_to)]
-        executor = MigrationExecutor(connection)
+        # The migrations have already been run, and the type already exists in
+        # the database
+        self.assertTrue(self.does_type_exist(TestType._meta.db_type))
 
-        # Run the migration to test
-        executor.migrate(self.migrate_to)
+        # Run the migration backwards to check the type is deleted
+        self.migrate(self.migrate_from)
 
-        self.apps = executor.loader.project_state(self.migrate_to).apps
+        # The type should now not exist
+        self.assertFalse(self.does_type_exist(TestType._meta.db_type))
+
+        # A signal is fired when the migration creates the type
+        signal_func = mock.Mock()
+        composite_type_created.connect(receiver=signal_func, sender=TestType)
+
+        # Run the migration forwards to create the type again
+        self.migrate(self.migrate_to)
+
+        # The signal should have been sent
+        self.assertEqual(signal_func.call_count, 1)
+        self.assertEqual(signal_func.call_args, ((), {
+            'sender': TestType,
+            'signal': composite_type_created,
+            'connection': connection}))
+
+        # The type should now exist again
+        self.assertTrue(self.does_type_exist(TestType._meta.db_type))
 
 
 @TestModel.fake_me
@@ -82,13 +121,11 @@ class FieldTests(TestCase):
         cursor = connection.connection.cursor()
         cursor.execute("SELECT (test_field).a FROM test_testmodel")
         result, = cursor.fetchone()
-        print(result)
 
         self.assertEqual(result, 1)
 
         cursor = connection.connection.cursor()
         cursor.execute("SELECT (test_field).b FROM test_testmodel")
         result, = cursor.fetchone()
-        print(result)
 
         self.assertEqual(result, "b")

@@ -37,7 +37,12 @@ Takes inspiration from:
 import logging
 from collections import OrderedDict
 
-from django.db import models, migrations
+from django.db import connections, migrations, models
+from django.db.backends.postgresql.base import \
+    DatabaseWrapper as PostgresDatabaseWrapper
+from django.db.backends.signals import connection_created
+from django.dispatch import Signal
+from psycopg2 import ProgrammingError
 from psycopg2.extras import register_composite
 
 LOGGER = logging.getLogger(__name__)
@@ -53,29 +58,11 @@ class BaseField(models.Field):
     def db_type(self, connection):
         LOGGER.debug("db_type")
 
-        if connection.settings_dict['ENGINE'] != \
-                'django.db.backends.postgresql':
+        if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available "
                                "for postgres")
 
-        # FIXME: this is called too late for the very first request
-        # not sure how to resolve that
-        register_composite(self.Meta.db_type,
-                           connection.connection,
-                           globally=True)
-
         return self.Meta.db_type
-
-    def get_db_converters(self, connection):
-        LOGGER.debug("db_converters")
-
-        # FIXME: this is called too late for the very first request
-        # not sure how to resolve that
-        register_composite(self.Meta.db_type,
-                           connection.connection,
-                           globally=True)
-
-        return super().get_db_converters(connection)
 
     def to_python(self, value):
         LOGGER.debug("to_python: > %s", value)
@@ -165,6 +152,11 @@ class BaseOperation(migrations.operations.base.Operation):
             "AS (%s)" % ', '.join(fields),
         )))
 
+        self.Meta.model.register_composite(schema_editor.connection)
+
+        composite_type_created.send(self.Meta.model,
+                                    connection=schema_editor.connection)
+
     def database_backwards(self, app_label, schema_editor,
                            from_state, to_state):
         schema_editor.execute('DROP TYPE %s' % self.Meta.db_type)
@@ -224,6 +216,55 @@ class CompositeTypeMeta(type):
         meta_obj.model = new_cls
 
         return new_cls
+
+    def __init__(cls, name, bases, attrs):
+        super().__init__(name, bases, attrs)
+        if name == 'CompositeType':
+            return
+
+        # Register the type on the first database connection
+        connection_created.connect(receiver=cls.database_connected,
+                                   dispatch_uid=cls._meta.db_type)
+
+    def database_connected(cls, signal, sender, connection, **kwargs):
+        """
+        Register this type with the database the first time a connection is
+        made.
+        """
+        if isinstance(connection, PostgresDatabaseWrapper):
+            # Try to register the type. If the type has not been created in a
+            # migration, the registration will fail. The type will be
+            # registered as part of the migration, so hopefully the migration
+            # will run soon.
+            try:
+                cls.register_composite(connection)
+            except ProgrammingError:
+                LOGGER.warning(
+                    "Failed to register composite %s. This might be because "
+                    "the migration to register it has not run yet")
+
+        # Disconnect the signal now - only need to register types on the
+        # initial connection
+        connection_created.disconnect(cls.database_connected,
+                                      dispatch_uid=cls._meta.db_type)
+
+    def register_composite(cls, connection):
+        """
+        Register this CompositeType with Postgres.
+
+        If the CompositeType does not yet exist in the database, this will
+        fail.  Hopefully a migration will come along shortly and create the
+        type in the database. If `retry` is True, this CompositeType will try
+        to register itself again after the type is created.
+        """
+
+        with connection.temporary_connection() as cur:
+            register_composite(cls._meta.db_type, cur, globally=True)
+
+
+# pylint:disable=invalid-name
+composite_type_created = Signal()
+# pylint:enable=invalid-name
 
 
 class CompositeType(object, metaclass=CompositeTypeMeta):
