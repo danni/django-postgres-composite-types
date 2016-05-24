@@ -1,3 +1,4 @@
+"""Models and types for the tests"""
 from django.db import models
 from django_fake_model.models import FakeModel
 

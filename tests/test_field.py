@@ -3,12 +3,11 @@
 import datetime
 from unittest import mock
 
-from django.db import connection, models
+from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
-from django_fake_model.models import FakeModel
 
-from postgres_composite_types import CompositeType, composite_type_created
+from postgres_composite_types import composite_type_created
 
 from .base import SimpleModel, SimpleType
 
