@@ -40,6 +40,7 @@ from collections import OrderedDict
 from django.db import connections, migrations, models
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as PostgresDatabaseWrapper
+from django.db.backends.signals import connection_created
 from django.dispatch import Signal
 from psycopg2 import ProgrammingError
 from psycopg2.extras import register_composite
@@ -151,7 +152,8 @@ class BaseOperation(migrations.operations.base.Operation):
             "AS (%s)" % ', '.join(fields),
         )))
 
-        composite_type_created.send(self.Meta.model)
+        composite_type_created.send(self.Meta.model,
+                                    connection=schema_editor.connection)
 
     def database_backwards(self, app_label, schema_editor,
                            from_state, to_state):
@@ -217,9 +219,27 @@ class CompositeTypeMeta(type):
         super().__init__(name, bases, attrs)
         if name == 'CompositeType':
             return
-        cls.register_composite(retry=True)
 
-    def register_composite(cls, retry=False):
+        # Register the type on the first database connection
+        connection_created.connect(receiver=cls.database_connected,
+                                   dispatch_uid=cls._meta.db_type)
+
+    def database_connected(cls, signal, sender, connection, **kwargs):
+        """
+        Register this type with the database the first time a connection is
+        made.
+        """
+        if isinstance(connection, PostgresDatabaseWrapper):
+            # Try to register the type. If the type has not been created in a
+            # migration, the registration should be retried later.
+            cls.register_composite(connection, retry=True)
+
+        # Disconnect the signal now - only need to register types on the
+        # initial connection
+        connection_created.disconnect(cls.database_connected,
+                                      dispatch_uid=cls._meta.db_type)
+
+    def register_composite(cls, connection, retry=False):
         """
         Register this CompositeType with Postgres.
 
@@ -228,27 +248,24 @@ class CompositeTypeMeta(type):
         type in the database. If `retry` is True, this CompositeType will try
         to register itself again after the type is created.
         """
-        pg_connections = [
-            connections[name] for name in connections
-            if isinstance(connections[name], PostgresDatabaseWrapper)]
 
         try:
-            for connection in pg_connections:
-                with connection.temporary_connection() as cur:
-                    register_composite(cls._meta.db_type, cur, globally=True)
+            with connection.temporary_connection() as cur:
+                register_composite(cls._meta.db_type, cur, globally=True)
         except ProgrammingError:
             if retry:
-                composite_type_created.connect(lazy_register, sender=cls)
+                composite_type_created.connect(post_migrate_register,
+                                               sender=cls)
             else:
                 raise
 
 
-def lazy_register(signal, sender, **kwargs):
+def post_migrate_register(signal, sender, connection, **kwargs):
     """
     Register a CompositeType with Postgres after it has been migrated.
     """
-    sender.register_composite()
-    composite_type_created.disconnect(lazy_register, sender=sender)
+    sender.register_composite(connection, retry=False)
+    composite_type_created.disconnect(post_migrate_register, sender=sender)
 
 
 # pylint:disable=invalid-name

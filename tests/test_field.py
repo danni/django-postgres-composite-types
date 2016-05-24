@@ -92,7 +92,8 @@ class TestMigrations(TransactionTestCase):
         self.assertEqual(signal_func.call_count, 1)
         self.assertEqual(signal_func.call_args, ((), {
             'sender': TestType,
-            'signal': composite_type_created}))
+            'signal': composite_type_created,
+            'connection': connection}))
 
         # The type should now exist again
         self.assertTrue(self.does_type_exist(TestType._meta.db_type))
