@@ -68,8 +68,8 @@ class CompositeBoundField(forms.BoundField):
         else:
             data = None
 
-        self.composite_form = forms.Form(data=data, initial=initial,
-                                         prefix=self.name)
+        self.composite_form = forms.Form(
+            data=data, initial=initial, prefix=self.form.add_prefix(self.name))
         self.composite_form.fields = copy.deepcopy(self.field.fields)
 
     def __getitem__(self, name):
