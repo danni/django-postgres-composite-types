@@ -116,10 +116,6 @@ class BaseField(models.Field):
         defaults = {
             'form_class': CompositeTypeField,
             'model': self.Meta.model,
-            'fields': [
-                (name, field.formfield())
-                for name, field in self.Meta.fields
-            ],
         }
         defaults.update(kwargs)
 

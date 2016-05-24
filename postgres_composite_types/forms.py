@@ -83,7 +83,14 @@ class CompositeTypeField(forms.Field):
     """
 
     def __init__(self, *args, fields=None, model=None, **kwargs):
-        fields = OrderedDict(fields)
+        if fields is None:
+            fields = OrderedDict([
+                (name, field.formfield())
+                for name, field in model._meta.fields
+            ])
+        else:
+            fields = OrderedDict(fields)
+
         widget = CompositeTypeWidget(widgets=[
             (name, field.widget)
             for name, field in fields.items()
