@@ -188,11 +188,15 @@ class CompositeTypeMeta(type):
                 fields.append((field_name, field))
 
         # retrieve the Meta from our declaration
-        meta_obj = attrs.pop('Meta', object())
+        try:
+            meta_obj = attrs.pop('Meta')
+        except KeyError:
+            raise TypeError('%s has no "Meta" class' % (name,))
+
         try:
             meta_obj.db_type
         except AttributeError:
-            raise TypeError("Meta.db_type is required.")
+            raise TypeError("%s.Meta.db_type is required." % (name,))
 
         meta_obj.fields = fields
 
