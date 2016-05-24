@@ -152,6 +152,8 @@ class BaseOperation(migrations.operations.base.Operation):
             "AS (%s)" % ', '.join(fields),
         )))
 
+        self.Meta.model.register_composite(schema_editor.connection)
+
         composite_type_created.send(self.Meta.model,
                                     connection=schema_editor.connection)
 
@@ -231,15 +233,22 @@ class CompositeTypeMeta(type):
         """
         if isinstance(connection, PostgresDatabaseWrapper):
             # Try to register the type. If the type has not been created in a
-            # migration, the registration should be retried later.
-            cls.register_composite(connection, retry=True)
+            # migration, the registration will fail. The type will be
+            # registered as part of the migration, so hopefully the migration
+            # will run soon.
+            try:
+                cls.register_composite(connection)
+            except ProgrammingError:
+                LOGGER.warning(
+                    "Failed to register composite %s. This might be because "
+                    "the migration to register it has not run yet")
 
         # Disconnect the signal now - only need to register types on the
         # initial connection
         connection_created.disconnect(cls.database_connected,
                                       dispatch_uid=cls._meta.db_type)
 
-    def register_composite(cls, connection, retry=False):
+    def register_composite(cls, connection):
         """
         Register this CompositeType with Postgres.
 
@@ -249,23 +258,8 @@ class CompositeTypeMeta(type):
         to register itself again after the type is created.
         """
 
-        try:
-            with connection.temporary_connection() as cur:
-                register_composite(cls._meta.db_type, cur, globally=True)
-        except ProgrammingError:
-            if retry:
-                composite_type_created.connect(post_migrate_register,
-                                               sender=cls)
-            else:
-                raise
-
-
-def post_migrate_register(signal, sender, connection, **kwargs):
-    """
-    Register a CompositeType with Postgres after it has been migrated.
-    """
-    sender.register_composite(connection, retry=False)
-    composite_type_created.disconnect(post_migrate_register, sender=sender)
+        with connection.temporary_connection() as cur:
+            register_composite(cls._meta.db_type, cur, globally=True)
 
 
 # pylint:disable=invalid-name
