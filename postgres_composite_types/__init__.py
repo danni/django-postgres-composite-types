@@ -303,6 +303,16 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
             for name, field in self._meta.fields
         )
 
+    def __eq__(self, other):
+        if not isinstance(other, CompositeType):
+            return False
+        if self._meta.model != other._meta.model:
+            return False
+        for name, _ in self._meta.fields:
+            if getattr(self, name) != getattr(other, name):
+                return False
+        return True
+
     class Field(BaseField):
         """
         Placeholder for the field that will be produced for this type.
