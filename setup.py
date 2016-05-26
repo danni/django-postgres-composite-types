@@ -2,12 +2,11 @@
 Setup.py
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 if __name__ == '__main__':
     with \
             open('requirements.in') as requirements, \
-            open('test_requirements.in') as test_requirements, \
             open('README.md') as readme:
         setup(
             use_scm_version=True,
@@ -33,5 +32,4 @@ if __name__ == '__main__':
             install_requires=requirements.readlines(),
 
             test_suite='tests',
-            tests_require=test_requirements.readlines(),
         )
