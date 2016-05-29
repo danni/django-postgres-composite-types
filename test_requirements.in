@@ -1,5 +1,5 @@
 nose
-django-nose
+-egit+https://github.com/django-nose/django-nose.git@master#egg=django-nose
 django_fake_model
 
 pep8

@@ -1,19 +1,36 @@
 language: python
+
+# Matrix of build options
 python:
-- '3.4'
-- '3.5'
+  - '3.4'
+  - '3.5'
+
+env:
+  global:
+    - DJANGO_SETTINGS_MODULE="tests.settings"
+    - TOX_ENV=
+  matrix:
+    - DJANGO='1.9'
+    - DJANGO='1.10'
+
+matrix:
+  include:
+    - env: TOX_ENV=style
+      python: '3.5'
+
 install:
-- pip install -e . -r requirements.in -r test_requirements.in
+  - pip install --upgrade pip wheel tox
+
 cache:
   directories:
-  - $HOME/virtualenv
-env:
- - DJANGO_SETTINGS_MODULE=tests.settings
+    - $HOME/.cache/pip
+    - $HOME/virtualenv
+
 script:
-- pep8 .
-- isort --recursive --check-only --diff postgres_composite_types tests
-- pylint postgres_composite_types tests
-- django-admin.py test
+  # Run tox using either a specific environment from TOX_ENV,
+  # or building one from the environment variables
+  - tox -e "${TOX_ENV:-py${TRAVIS_PYTHON_VERSION/./}-dj${DJANGO}}"
+
 sudo: false
 deploy:
   provider: pypi

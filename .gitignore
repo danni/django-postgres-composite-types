@@ -5,3 +5,4 @@
 /requirements.txt
 /test_requirements.txt
 __pycache__
+/.tox

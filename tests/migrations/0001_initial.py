@@ -5,7 +5,7 @@ Migration to create custom types
 
 from django.db import migrations
 
-from ..test_field import TestType
+from ..base import SimpleType
 
 
 class Migration(migrations.Migration):
@@ -15,5 +15,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        TestType.Operation(),
+        SimpleType.Operation(),
     ]

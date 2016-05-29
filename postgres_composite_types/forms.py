@@ -38,8 +38,10 @@ from collections import OrderedDict
 
 from django import forms
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 
 from . import CompositeType
+from .compat import prefix_validation_error
 
 LOGGER = logging.getLogger(__name__)
 
@@ -82,8 +84,19 @@ class CompositeTypeField(forms.Field):
     Takes an ordered dict of fields to produce a composite form field
     """
 
+    default_error_messags = {
+        'field_invalid': _('%s: '),
+    }
+
     def __init__(self, *args, fields=None, model=None, **kwargs):
-        fields = OrderedDict(fields)
+        if fields is None:
+            fields = OrderedDict([
+                (name, field.formfield())
+                for name, field in model._meta.fields
+            ])
+        else:
+            fields = OrderedDict(fields)
+
         widget = CompositeTypeWidget(widgets=[
             (name, field.widget)
             for name, field in fields.items()
@@ -112,10 +125,19 @@ class CompositeTypeField(forms.Field):
                 value = None
 
         else:
-            value = self.model(**{
-                name: field.clean(value.get(name))
-                for name, field in self.fields.items()
-            })
+            cleaned_data = {}
+            errors = []
+
+            for name, field in self.fields.items():
+                try:
+                    cleaned_data[name] = field.clean(value.get(name))
+                except forms.ValidationError as error:
+                    errors.append(prefix_validation_error(
+                        error, code='field_invalid',
+                        prefix='%(label)s: ', params={'label': field.label}))
+            if errors:
+                raise forms.ValidationError(errors)
+            value = self.model(**cleaned_data)
 
         LOGGER.debug("clean: < %s", value)
 

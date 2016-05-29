@@ -116,10 +116,6 @@ class BaseField(models.Field):
         defaults = {
             'form_class': CompositeTypeField,
             'model': self.Meta.model,
-            'fields': [
-                (name, field.formfield())
-                for name, field in self.Meta.fields
-            ],
         }
         defaults.update(kwargs)
 
@@ -192,11 +188,15 @@ class CompositeTypeMeta(type):
                 fields.append((field_name, field))
 
         # retrieve the Meta from our declaration
-        meta_obj = attrs.pop('Meta', object())
+        try:
+            meta_obj = attrs.pop('Meta')
+        except KeyError:
+            raise TypeError('%s has no "Meta" class' % (name,))
+
         try:
             meta_obj.db_type
         except AttributeError:
-            raise TypeError("Meta.db_type is required.")
+            raise TypeError("%s.Meta.db_type is required." % (name,))
 
         meta_obj.fields = fields
 
@@ -306,6 +306,16 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
             (name, field.get_prep_value(getattr(self, name)))
             for name, field in self._meta.fields
         )
+
+    def __eq__(self, other):
+        if not isinstance(other, CompositeType):
+            return False
+        if self._meta.model != other._meta.model:
+            return False
+        for name, _ in self._meta.fields:
+            if getattr(self, name) != getattr(other, name):
+                return False
+        return True
 
     class Field(BaseField):
         """
