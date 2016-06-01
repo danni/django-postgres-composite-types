@@ -13,87 +13,95 @@ Install with:
 
 Define a type and add it to a model:
 
-    from django.db import models
-    from postgres_composite_type import CompositeType
+```python
+from django.db import models
+from postgres_composite_type import CompositeType
 
-    class Address(CompositeType):
-        """An address."""
+class Address(CompositeType):
+    """An address."""
 
-        address_1 = models.CharField(max_length=255)
-        address_2 = models.CharField(max_length=255)
+    address_1 = models.CharField(max_length=255)
+    address_2 = models.CharField(max_length=255)
 
-        suburb = models.CharField(max_length=50)
-        state = models.CharField(max_length=50)
+    suburb = models.CharField(max_length=50)
+    state = models.CharField(max_length=50)
 
-        postcode = models.CharField(max_length=10)
-        country = models.CharField(max_length=50)
+    postcode = models.CharField(max_length=10)
+    country = models.CharField(max_length=50)
 
-        class Meta:
-            db_type = 'x_address'  # Required
+    class Meta:
+        db_type = 'x_address'  # Required
 
 
-    class Person(models.Model):
-        """A person."""
+class Person(models.Model):
+    """A person."""
 
-        address = Address.Field()
+    address = Address.Field()
+```
 
 An operation needs to be prepended to your migration:
 
-    import address
-    from django.db import migrations
+```python
+import address
+from django.db import migrations
 
 
-    class Migration(migrations.Migration):
+class Migration(migrations.Migration):
 
-        operations = [
-            # Registers the type
-            address.Address.Operation(),
-            migrations.AddField(
-                model_name='person',
-                name='address',
-                field=address.Address.Field(blank=True, null=True),
-            ),
-        ]
+    operations = [
+        # Registers the type
+        address.Address.Operation(),
+        migrations.AddField(
+            model_name='person',
+            name='address',
+            field=address.Address.Field(blank=True, null=True),
+        ),
+    ]
+```
 
 Examples
 --------
 
 Array fields:
 
-    class Card(CompositeType):
-        """A playing card."""
+```python
+class Card(CompositeType):
+    """A playing card."""
 
-        suit = models.CharField(max_length=1)
-        rank = models.CharField(max_length=2)
+    suit = models.CharField(max_length=1)
+    rank = models.CharField(max_length=2)
 
-        class Meta:
-            db_type = 'card'
+    class Meta:
+        db_type = 'card'
 
 
-    class Hand(models.Model):
-        """A hand of cards."""
-        cards = ArrayField(base_field=Card.Field())
+class Hand(models.Model):
+    """A hand of cards."""
+    cards = ArrayField(base_field=Card.Field())
+```
 
 Nested types:
 
-    class Point(CompositeType):
-        """A point on the cartesian plane."""
+```python
+class Point(CompositeType):
+    """A point on the cartesian plane."""
 
-        # pylint:disable=invalid-name
-        x = models.IntegerField()
-        y = models.IntegerField()
+    # pylint:disable=invalid-name
+    x = models.IntegerField()
+    y = models.IntegerField()
 
-        class Meta:
-            db_type = 'x_point'  # Postgres already has a point type
+    class Meta:
+        db_type = 'x_point'  # Postgres already has a point type
 
 
-    class Box(CompositeType):
-        """An axis-aligned box on the cartesian plane."""
-        class Meta:
-            db_type = 'x_box'  # Postgres already has a box type
+class Box(CompositeType):
+    """An axis-aligned box on the cartesian plane."""
+    class Meta:
+        db_type = 'x_box'  # Postgres already has a box type
 
-        top_left = Point.Field()
-        bottom_right = Point.Field()
+    top_left = Point.Field()
+    bottom_right = Point.Field()
+```
 
 Gotchas and Caveats
 -------------------
@@ -106,15 +114,17 @@ extensible.
 
 Changes to types are possible using `RawSQL`, for example:
 
-    operations = [
-        migrations.RunSQL([
-            "ALTER TYPE x_address DROP ATTRIBUTE country",
-            "ALTER TYPE x_address ADD ATTRIBUTE country integer",
-        ], [
-            "ALTER TYPE x_address DROP ATTRIBUTE country",
-            "ALTER TYPE x_address ADD ATTRIBUTE country varchar(50)",
-        ]),
-    ]
+```python
+operations = [
+    migrations.RunSQL([
+        "ALTER TYPE x_address DROP ATTRIBUTE country",
+        "ALTER TYPE x_address ADD ATTRIBUTE country integer",
+    ], [
+        "ALTER TYPE x_address DROP ATTRIBUTE country",
+        "ALTER TYPE x_address ADD ATTRIBUTE country varchar(50)",
+    ]),
+]
+```
 
 However, be aware that if your earlier operations were run using current DB
 code, you will already have the right types
