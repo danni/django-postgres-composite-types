@@ -6,6 +6,7 @@ from postgres_composite_types import CompositeType
 
 from .compat import ArrayField
 
+
 # pylint:disable=no-member
 
 
@@ -27,6 +28,20 @@ class SimpleModel(FakeModel):
 
     class Meta:
         app_label = 'test'
+
+
+class OptionalBits(CompositeType):
+    """A type with an optional field"""
+    required = models.CharField(max_length=32)
+    optional = models.CharField(max_length=32, null=True, blank=True)
+
+    class Meta:
+        db_type = 'optional_type'
+
+
+class OptionalModel(FakeModel):
+    """A model with an optional composity type"""
+    optional_field = OptionalBits.Field(null=True, blank=True)
 
 
 class Card(CompositeType):

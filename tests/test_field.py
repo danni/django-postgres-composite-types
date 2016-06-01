@@ -6,12 +6,11 @@ from unittest import mock
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
-
 from psycopg2.extensions import adapt
 
 from postgres_composite_types import composite_type_created
 
-from .base import SimpleModel, SimpleType
+from .base import OptionalBits, OptionalModel, SimpleModel, SimpleType
 
 
 class TestMigrations(TransactionTestCase):
@@ -128,3 +127,43 @@ class FieldTests(TestCase):
         self.assertEqual(
             b"(1, 'b', '1985-10-26T09:00:00'::timestamp)::test_type",
             adapted.getquoted())
+
+
+@OptionalModel.fake_me
+class TestOptionalFields(TestCase):
+    """
+    Test optional composite type fields, and optional fields on composite types
+    """
+
+    def test_null_field_save_and_load(self):
+        """Save and load a null composite field"""
+        model = OptionalModel(optional_field=None)
+        model.save()  # pylint:disable=no-member
+
+        model = OptionalModel.objects.get(id=1)
+        self.assertIsNone(model.optional_field)
+
+    def test_null_subfield_save_and_load(self):
+        """Save and load a null composite field"""
+        model = OptionalModel(optional_field=OptionalBits(
+            required='foo', optional=None))
+        model.save()  # pylint:disable=no-member
+
+        model = OptionalModel.objects.get(id=1)
+        self.assertIsNotNone(model.optional_field)
+        self.assertEqual(model.optional_field, OptionalBits(
+            required='foo', optional=None))
+
+    def test_all_filled(self):
+        """
+        Save and load an optional composite field with all its optional fields
+        filled in
+        """
+        model = OptionalModel(optional_field=OptionalBits(
+            required='foo', optional='bar'))
+        model.save()  # pylint:disable=no-member
+
+        model = OptionalModel.objects.get(id=1)
+        self.assertIsNotNone(model.optional_field)
+        self.assertEqual(model.optional_field, OptionalBits(
+            required='foo', optional='bar'))
