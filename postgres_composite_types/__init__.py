@@ -37,13 +37,13 @@ Takes inspiration from:
 import logging
 from collections import OrderedDict
 
-from django.db import connections, migrations, models
+from django.db import migrations, models
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as PostgresDatabaseWrapper
 from django.db.backends.signals import connection_created
 from django.dispatch import Signal
 from psycopg2 import ProgrammingError
-from psycopg2.extensions import AsIs, ISQLQuote, adapt, register_adapter
+from psycopg2.extensions import ISQLQuote, adapt, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
 
 LOGGER = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class BaseField(models.Field):
 
     def formfield(self, **kwargs):
         """Form field for address."""
-        from .forms import CompositeTypeField, CompositeTypeWidget
+        from .forms import CompositeTypeField
 
         defaults = {
             'form_class': CompositeTypeField,
