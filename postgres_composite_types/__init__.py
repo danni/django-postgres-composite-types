@@ -68,7 +68,12 @@ class QuotedCompositeType(object):
             for _, field in self.model._meta.fields]
 
     def __conform__(self, protocol):
-        # Required for nested composite types
+        """
+        QuotedCompositeType conform to the ISQLQuote protocol all by
+        themselves. This is required for nested composite types.
+
+        Returns None if it can not conform to the requested protocol.
+        """
         if protocol is ISQLQuote:
             return self
 
@@ -92,9 +97,9 @@ class QuotedCompositeType(object):
         Returns something like ``b"(value1, value2)::type_name"``
         """
         if self.prepared_value is None:
-            raise RuntimeError(
-                "%(name)s.prepare() must be called before %(name)s.getquoted()"
-                % {'name': type(self).__name__})
+            raise RuntimeError("{name}.prepare() must be called before "
+                               "{name}.getquoted()".format(
+                                   name=type(self).__name__))
 
         db_type = self.model._meta.db_type.encode('ascii')
         return self.prepared_value.getquoted() + b'::' + db_type
@@ -352,6 +357,13 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
             register_adapter(cls, QuotedCompositeType)
 
     def __conform__(self, protocol):
+        """
+        CompositeTypes know how to conform to the ISQLQuote protocol, by
+        wrapping themselves in a QuotedCompositeType. The ISQLQuote protocol
+        is all about formatting custom types for use in SQL statements.
+
+        Returns None if it can not conform to the requested protocol.
+        """
         if protocol is ISQLQuote:
             return QuotedCompositeType(self)
 
