@@ -7,6 +7,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 
+from psycopg2.extensions import adapt
+
 from postgres_composite_types import composite_type_created
 
 from .base import SimpleModel, SimpleType
@@ -87,7 +89,7 @@ class FieldTests(TestCase):
     def test_field_save_and_load(self):
         """Save and load a test model."""
         # pylint:disable=invalid-name
-        t = SimpleType(a=1, b="b", c=datetime.datetime(1985, 10, 26, 9, 0))
+        t = SimpleType(a=1, b="β ☃", c=datetime.datetime(1985, 10, 26, 9, 0))
         m = SimpleModel(test_field=t)
         m.save()  # pylint:disable=no-member
 
@@ -96,7 +98,7 @@ class FieldTests(TestCase):
         self.assertIsNotNone(m.test_field)
         self.assertIsInstance(m.test_field, SimpleType)
         self.assertEqual(m.test_field.a, 1)
-        self.assertEqual(m.test_field.b, "b")
+        self.assertEqual(m.test_field.b, "β ☃")
         self.assertEqual(m.test_field.c, datetime.datetime(1985, 10, 26, 9, 0))
 
         cursor = connection.connection.cursor()
@@ -111,4 +113,18 @@ class FieldTests(TestCase):
             SimpleModel._meta.db_table,))
         result, = cursor.fetchone()
 
-        self.assertEqual(result, "b")
+        self.assertEqual(result, "β ☃")
+
+    def test_adapted_sql(self):
+        """
+        Check that the value is serialised to the correct SQL string, including
+        a type cast
+        """
+        value = SimpleType(a=1, b="b", c=datetime.datetime(1985, 10, 26, 9, 0))
+
+        adapted = adapt(value)
+        adapted.prepare(connection.connection)
+
+        self.assertEqual(
+            b"(1, 'b', '1985-10-26T09:00:00'::timestamp)::test_type",
+            adapted.getquoted())

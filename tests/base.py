@@ -4,6 +4,10 @@ from django_fake_model.models import FakeModel
 
 from postgres_composite_types import CompositeType
 
+from .compat import ArrayField
+
+# pylint:disable=no-member
+
 
 class SimpleType(CompositeType):
     """A test type."""
@@ -23,3 +27,54 @@ class SimpleModel(FakeModel):
 
     class Meta:
         app_label = 'test'
+
+
+class Card(CompositeType):
+    """A playing card."""
+    class Meta:
+        db_type = 'card'
+
+    suit = models.CharField(max_length=1)
+    rank = models.CharField(max_length=2)
+
+
+class Hand(FakeModel):
+    """A hand of cards."""
+    cards = ArrayField(base_field=Card.Field())
+
+
+class Point(CompositeType):
+    """A point on the cartesian plane."""
+    class Meta:
+        db_type = 'test_point'  # Postgres already has a point type
+
+    # pylint:disable=invalid-name
+    x = models.IntegerField()
+    y = models.IntegerField()
+
+
+class Box(CompositeType):
+    """An axis-aligned box on the cartesian plane."""
+    class Meta:
+        db_type = 'test_box'  # Postgres already has a box type
+
+    top_left = Point.Field()
+    bottom_right = Point.Field()
+
+    @property
+    def bottom_left(self):
+        """The bottom-left corner of the box."""
+        return Point(x=self.top_left.x,
+                     y=self.bottom_right.y)
+
+    @property
+    def top_right(self):
+        """The top-right corner of the box."""
+        return Point(x=self.bottom_right.x,
+                     y=self.top_left.y)
+
+
+class Item(FakeModel):
+    """An item that exists somewhere on a cartesian plane."""
+    name = models.CharField(max_length=20)
+    bounding_box = Box.Field()

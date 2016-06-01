@@ -59,6 +59,7 @@ Authors
 -------
 
 * Danielle Madeley <danielle@madeley.id.au>
+* Tim Heap <hello@timheap.me>
 
 License
 -------

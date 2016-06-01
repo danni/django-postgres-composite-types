@@ -37,17 +37,72 @@ Takes inspiration from:
 import logging
 from collections import OrderedDict
 
-from django.db import connections, migrations, models
+from django.db import migrations, models
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as PostgresDatabaseWrapper
 from django.db.backends.signals import connection_created
 from django.dispatch import Signal
 from psycopg2 import ProgrammingError
-from psycopg2.extras import register_composite
+from psycopg2.extensions import ISQLQuote, adapt, register_adapter
+from psycopg2.extras import CompositeCaster, register_composite
 
 LOGGER = logging.getLogger(__name__)
 
 __all__ = ['CompositeType']
+
+
+class QuotedCompositeType(object):
+    """
+    A wrapper for CompositeTypes that knows how to convert itself into a safe
+    postgres representation. Created from CompositeType.__conform__
+    """
+    prepared_value = None
+
+    def __init__(self, obj):
+        self.obj = obj
+        self.model = obj._meta.model
+
+        self.values = [
+            adapt(field.get_db_prep_value(field.value_from_object(self.obj),
+                                          self.model.registered_connection))
+            for _, field in self.model._meta.fields]
+
+    def __conform__(self, protocol):
+        """
+        QuotedCompositeType conform to the ISQLQuote protocol all by
+        themselves. This is required for nested composite types.
+
+        Returns None if it can not conform to the requested protocol.
+        """
+        if protocol is ISQLQuote:
+            return self
+
+    def prepare(self, connection):
+        """
+        Prepare anything that depends on the database connection, such as
+        strings with encodings.
+        """
+        for value in self.values:
+            if hasattr(value, 'prepare'):
+                value.prepare(connection)
+
+        self.prepared_value = adapt(tuple(self.values))
+        self.prepared_value.prepare(connection)
+
+    def getquoted(self):
+        """
+        Format composite types as the correct Postgres snippet, including
+        casts, for queries.
+
+        Returns something like ``b"(value1, value2)::type_name"``
+        """
+        if self.prepared_value is None:
+            raise RuntimeError("{name}.prepare() must be called before "
+                               "{name}.getquoted()".format(
+                                   name=type(self).__name__))
+
+        db_type = self.model._meta.db_type.encode('ascii')
+        return self.prepared_value.getquoted() + b'::' + db_type
 
 
 class BaseField(models.Field):
@@ -64,54 +119,9 @@ class BaseField(models.Field):
 
         return self.Meta.db_type
 
-    def to_python(self, value):
-        LOGGER.debug("to_python: > %s", value)
-
-        if isinstance(value, dict):
-            value = self.Meta.model(**value)
-        else:
-            pass
-
-        LOGGER.debug("to_python: < %s", value)
-
-        return value
-
-    def from_db_value(self, value, expression, connection, context):
-        """Convert the DB value into a Python type."""
-        LOGGER.debug("from_db_value: > %s (%s)", value, type(value))
-
-        if isinstance(value, tuple):
-            value = self.Meta.model(*value)
-        else:
-            pass
-
-        LOGGER.debug("from_db_value: < %s (%s)", value, type(value))
-
-        return value
-
-    def get_prep_value(self, value):
-        LOGGER.debug("get_prep_value: > %s (%s)",
-                     value, type(value))
-
-        if isinstance(value, dict):
-            # Handle dicts because why not?
-            value = tuple(
-                field.get_prep_value(value.get(name))
-                for name, field in self.Meta.fields
-            )
-        elif isinstance(value, self.Meta.model):
-            value = value.__to_tuple__()
-        else:
-            pass
-
-        LOGGER.debug("get_prep_value: < %s (%s)",
-                     value, type(value))
-
-        return value
-
     def formfield(self, **kwargs):
         """Form field for address."""
-        from .forms import CompositeTypeField, CompositeTypeWidget
+        from .forms import CompositeTypeField
 
         defaults = {
             'form_class': CompositeTypeField,
@@ -156,6 +166,17 @@ class BaseOperation(migrations.operations.base.Operation):
     def database_backwards(self, app_label, schema_editor,
                            from_state, to_state):
         schema_editor.execute('DROP TYPE %s' % self.Meta.db_type)
+
+
+class BaseCaster(CompositeCaster):
+    """
+    Base caster to transform a tuple of values from postgres to a model
+    instance.
+    """
+    Meta = None
+
+    def make(self, values):
+        return self.Meta.model(*values)
 
 
 class CompositeTypeMeta(type):
@@ -210,6 +231,11 @@ class CompositeTypeMeta(type):
                                   (BaseOperation,),
                                   {'Meta': meta_obj})
 
+        # create the caster for this type
+        attrs['Caster'] = type('%sCaster' % name,
+                               (BaseCaster,),
+                               {'Meta': meta_obj})
+
         new_cls = super().__new__(mcs, name, bases, attrs)
         new_cls._meta = meta_obj
 
@@ -241,25 +267,13 @@ class CompositeTypeMeta(type):
             except ProgrammingError:
                 LOGGER.warning(
                     "Failed to register composite %s. This might be because "
-                    "the migration to register it has not run yet")
+                    "the migration to register it has not run yet",
+                    cls.__name__)
 
         # Disconnect the signal now - only need to register types on the
         # initial connection
         connection_created.disconnect(cls.database_connected,
                                       dispatch_uid=cls._meta.db_type)
-
-    def register_composite(cls, connection):
-        """
-        Register this CompositeType with Postgres.
-
-        If the CompositeType does not yet exist in the database, this will
-        fail.  Hopefully a migration will come along shortly and create the
-        type in the database. If `retry` is True, this CompositeType will try
-        to register itself again after the type is created.
-        """
-
-        with connection.temporary_connection() as cur:
-            register_composite(cls._meta.db_type, cur, globally=True)
 
 
 # pylint:disable=invalid-name
@@ -273,6 +287,9 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
     """
 
     _meta = None
+
+    # The database connection this type is registered with
+    registered_connection = None
 
     def __init__(self, *args, **kwargs):
         if args and kwargs:
@@ -317,6 +334,39 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
                 return False
         return True
 
+    @classmethod
+    def register_composite(cls, connection):
+        """
+        Register this CompositeType with Postgres.
+
+        If the CompositeType does not yet exist in the database, this will
+        fail.  Hopefully a migration will come along shortly and create the
+        type in the database. If `retry` is True, this CompositeType will try
+        to register itself again after the type is created.
+        """
+
+        LOGGER.debug("Registering composite type %s on connection %s",
+                     cls.__name__, connection)
+        cls.registered_connection = connection
+
+        with connection.temporary_connection() as cur:
+            # This is what to do when the type is coming out of the database
+            register_composite(cls._meta.db_type, cur, globally=True,
+                               factory=cls.Caster)
+            # This is what to do when the type is going in to the database
+            register_adapter(cls, QuotedCompositeType)
+
+    def __conform__(self, protocol):
+        """
+        CompositeTypes know how to conform to the ISQLQuote protocol, by
+        wrapping themselves in a QuotedCompositeType. The ISQLQuote protocol
+        is all about formatting custom types for use in SQL statements.
+
+        Returns None if it can not conform to the requested protocol.
+        """
+        if protocol is ISQLQuote:
+            return QuotedCompositeType(self)
+
     class Field(BaseField):
         """
         Placeholder for the field that will be produced for this type.
@@ -325,4 +375,9 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
     class Operation(BaseOperation):
         """
         Placeholder for the DB operation that will be produced for this type.
+        """
+
+    class Caster(CompositeCaster):
+        """
+        Placeholder for the caster that will be produced for this type
         """
