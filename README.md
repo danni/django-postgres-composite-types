@@ -133,6 +133,10 @@ code, you will already have the right types
 It is recommended to that you namespace your custom types to avoid conflict
 with future PostgreSQL types.
 
+Lookups and indexes are not implemented yet
+([bug #9](https://github.com/danni/django-postgres-composite-types/issues/9),
+[bug #10](https://github.com/danni/django-postgres-composite-types/issues/10)).
+
 Authors
 -------
 
