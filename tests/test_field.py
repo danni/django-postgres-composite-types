@@ -10,7 +10,10 @@ from psycopg2.extensions import adapt
 
 from postgres_composite_types import composite_type_created
 
-from .base import OptionalBits, OptionalModel, SimpleModel, SimpleType
+from .base import (
+    DateRange, NamedDateRange,
+    OptionalBits, OptionalModel,
+    SimpleModel, SimpleType)
 
 
 class TestMigrations(TransactionTestCase):
@@ -80,8 +83,17 @@ class TestMigrations(TransactionTestCase):
         # The type should now exist again
         self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
 
+    def test_migration_quoting(self):
+        """Test that migration SQL is generated with correct quoting"""
+
+        # The migrations have already been run, and the type already exists in
+        # the database
+        self.migrate(self.migrate_to)
+        self.assertTrue(self.does_type_exist(DateRange._meta.db_type))
+
 
 @SimpleModel.fake_me
+@NamedDateRange.fake_me
 class FieldTests(TestCase):
     """Tests for composite field."""
 
@@ -113,6 +125,17 @@ class FieldTests(TestCase):
         result, = cursor.fetchone()
 
         self.assertEqual(result, "β ☃")
+
+    def test_field_save_and_load_with_reserved_names(self):
+        """Test save/load of a composite type with reserved field names"""
+        start = datetime.datetime.now()
+        end = datetime.datetime.now() + datetime.timedelta(days=1)
+        date_range = DateRange(start=start, end=end)
+        model = NamedDateRange(name='foobar', date_range=date_range)
+        model.save()
+
+        model = NamedDateRange.objects.get()
+        self.assertEqual(model.date_range, date_range)
 
     def test_adapted_sql(self):
         """
