@@ -2,6 +2,7 @@
 Tests for composite fields in combination with other interesting fields.
 """
 
+from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
 from .base import Box, Card, Hand, Item, Point
@@ -55,6 +56,17 @@ class TestArrayFields(TestCase):
             Hand.objects.filter(cards__contains=[queen_of_hearts]).exists())
         self.assertFalse(
             Hand.objects.filter(cards__contains=[jack_of_spades]).exists())
+
+    def test_generate_migrations(self):
+        """Test deconstruction of composite type as a base field"""
+        field = Hand._meta.get_field('cards')
+        text, imports = MigrationWriter.serialize(field)
+        self.assertEqual(text,
+                         'django.contrib.postgres.fields.ArrayField'
+                         '(base_field=tests.base.CardField(), size=None)')
+        # check that we're not trying to import something suspicious
+        self.assertSetEqual(imports, {'import tests.base',
+                                      'import django.contrib.postgres.fields'})
 
 
 @Item.fake_me
