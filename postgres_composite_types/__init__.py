@@ -145,13 +145,14 @@ class BaseOperation(migrations.operations.base.Operation):
                           from_state, to_state):
 
         fields = [
-            '%s %s' % (name, field.db_type(schema_editor.connection))
+            '%s %s' % (schema_editor.quote_name(name),
+                       field.db_type(schema_editor.connection))
             for name, field in self.Meta.fields
         ]
 
         schema_editor.execute(' '.join((
             "CREATE TYPE",
-            self.Meta.db_type,
+            schema_editor.quote_name(self.Meta.db_type),
             "AS (%s)" % ', '.join(fields),
         )))
 
@@ -162,7 +163,8 @@ class BaseOperation(migrations.operations.base.Operation):
 
     def database_backwards(self, app_label, schema_editor,
                            from_state, to_state):
-        schema_editor.execute('DROP TYPE %s' % self.Meta.db_type)
+        type_name = schema_editor.quote_name(self.Meta.db_type)
+        schema_editor.execute('DROP TYPE %s' % type_name)
 
 
 class BaseCaster(CompositeCaster):

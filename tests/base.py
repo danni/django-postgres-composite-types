@@ -93,3 +93,18 @@ class Item(FakeModel):
     """An item that exists somewhere on a cartesian plane."""
     name = models.CharField(max_length=20)
     bounding_box = Box.Field()
+
+
+class DateRange(CompositeType):
+    """A date range with start and end."""
+    class Meta:
+        db_type = 'test_date_range'
+
+    start = models.DateTimeField()
+    end = models.DateTimeField()   # uses reserved keyword
+
+
+class NamedDateRange(FakeModel):
+    """A date-range with a name"""
+    name = models.TextField()
+    date_range = DateRange.Field()
