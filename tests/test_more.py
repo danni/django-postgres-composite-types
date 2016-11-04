@@ -61,12 +61,27 @@ class TestArrayFields(TestCase):
         """Test deconstruction of composite type as a base field"""
         field = Hand._meta.get_field('cards')
         text, imports = MigrationWriter.serialize(field)
-        self.assertEqual(text,
-                         'django.contrib.postgres.fields.ArrayField'
-                         '(base_field=tests.base.CardField(), size=None)')
-        # check that we're not trying to import something suspicious
-        self.assertSetEqual(imports, {'import tests.base',
-                                      'import django.contrib.postgres.fields'})
+        models_module = Hand.__module__
+
+        # strip out prefix from imports
+        imports = {stmt.replace('import ', '') for stmt in imports}
+        try:
+            # check we import exactly the module that we insert
+            # the Field class into
+            imports.remove(models_module)
+            # check that there is also an import for the ArrayField
+            outer_field_module = imports.pop()
+        except KeyError as ex:
+            self.fail(str(ex))
+        # check that we're not trying to import anything else
+        self.assertSetEqual(imports, set())
+
+        # finally, check that the deconstruction is valid.
+        # by extension of the above this also tests that the second
+        # import statement is one that we are expecting
+        expected = '{}.ArrayField(base_field={}.CardField(), size=None)'
+        expected = expected.format(outer_field_module, models_module)
+        self.assertEqual(text, expected)
 
 
 @Item.fake_me
