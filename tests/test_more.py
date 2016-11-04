@@ -60,28 +60,14 @@ class TestArrayFields(TestCase):
     def test_generate_migrations(self):
         """Test deconstruction of composite type as a base field"""
         field = Hand._meta.get_field('cards')
-        text, imports = MigrationWriter.serialize(field)
+        text, _ = MigrationWriter.serialize(field)
+        # build the expected full path of the nested composite type class
         models_module = Hand.__module__
-
-        # strip out prefix from imports
-        imports = {stmt.replace('import ', '') for stmt in imports}
-        try:
-            # check we import exactly the module that we insert
-            # the Field class into
-            imports.remove(models_module)
-            # check that there is also an import for the ArrayField
-            outer_field_module = imports.pop()
-        except KeyError as ex:
-            self.fail(str(ex))
-        # check that we're not trying to import anything else
-        self.assertSetEqual(imports, set())
-
-        # finally, check that the deconstruction is valid.
-        # by extension of the above this also tests that the second
-        # import statement is one that we are expecting
-        expected = '{}.ArrayField(base_field={}.CardField(), size=None)'
-        expected = expected.format(outer_field_module, models_module)
-        self.assertEqual(text, expected)
+        base_field_cls = field.base_field.__class__.__name__
+        expected_path = '.'.join((models_module, base_field_cls))
+        # check that the expected path is the one used by deconstruct
+        expected_deconstruction = 'base_field={}()'.format(expected_path)
+        self.assertIn(expected_deconstruction, text)
 
 
 @Item.fake_me
