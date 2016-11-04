@@ -63,8 +63,8 @@ class TestArrayFields(TestCase):
         text, _ = MigrationWriter.serialize(field)
         # build the expected full path of the nested composite type class
         models_module = Hand.__module__
-        base_field_cls = field.base_field.__class__.__name__
-        expected_path = '.'.join((models_module, base_field_cls))
+        composite_field_cls = field.base_field.__class__.__name__
+        expected_path = '.'.join((models_module, composite_field_cls))
         # check that the expected path is the one used by deconstruct
         expected_deconstruction = 'base_field={}()'.format(expected_path)
         self.assertIn(expected_deconstruction, text)
