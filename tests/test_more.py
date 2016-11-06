@@ -2,6 +2,7 @@
 Tests for composite fields in combination with other interesting fields.
 """
 
+from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
 from .base import Box, Card, Hand, Item, Point
@@ -55,6 +56,18 @@ class TestArrayFields(TestCase):
             Hand.objects.filter(cards__contains=[queen_of_hearts]).exists())
         self.assertFalse(
             Hand.objects.filter(cards__contains=[jack_of_spades]).exists())
+
+    def test_generate_migrations(self):
+        """Test deconstruction of composite type as a base field"""
+        field = Hand._meta.get_field('cards')
+        text, _ = MigrationWriter.serialize(field)
+        # build the expected full path of the nested composite type class
+        models_module = Hand.__module__
+        composite_field_cls = field.base_field.__class__.__name__
+        expected_path = '.'.join((models_module, composite_field_cls))
+        # check that the expected path is the one used by deconstruct
+        expected_deconstruction = 'base_field={}()'.format(expected_path)
+        self.assertIn(expected_deconstruction, text)
 
 
 @Item.fake_me

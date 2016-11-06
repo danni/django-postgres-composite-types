@@ -35,6 +35,7 @@ Takes inspiration from:
 """
 
 import logging
+import sys
 from collections import OrderedDict
 
 from django.db import migrations, models
@@ -178,6 +179,12 @@ class BaseCaster(CompositeCaster):
         return self.Meta.model(*values)
 
 
+def _add_class_to_module(cls, module_name):
+    cls.__module__ = module_name
+    module = sys.modules[module_name]
+    setattr(module, cls.__name__, cls)
+
+
 class CompositeTypeMeta(type):
     """Metaclass for Type."""
 
@@ -224,6 +231,10 @@ class CompositeTypeMeta(type):
         attrs['Field'] = type('%sField' % name,
                               (BaseField,),
                               {'Meta': meta_obj})
+
+        # add field class to the module in which the composite type class lives
+        # this is required for migrations to work
+        _add_class_to_module(attrs['Field'], attrs['__module__'])
 
         # create the database operation for this type
         attrs['Operation'] = type('Create%sType' % name,
