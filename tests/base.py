@@ -108,3 +108,40 @@ class NamedDateRange(FakeModel):
     """A date-range with a name"""
     name = models.TextField()
     date_range = DateRange.Field()
+
+
+class TripleOnAssignDescriptor:
+    """Multiply by 3 on assign"""
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return instance.__dict__[self.field.name]
+
+    def __set__(self, instance, value):
+        # Allow NULL
+        if value is not None:
+            value *= 3
+        instance.__dict__[self.field.name] = value
+
+
+class TriplingIntegerField(models.IntegerField):
+    """Field that triples assigned value"""
+    def contribute_to_class(self, cls, name, **kwargs):
+        super().contribute_to_class(cls, name, **kwargs)
+        setattr(cls, self.name, TripleOnAssignDescriptor(self))
+
+
+class DescriptorType(CompositeType):
+    """Has a field implementing a custom descriptor"""
+    class Meta:
+        db_type = 'test_custom_descriptor'
+
+    value = TriplingIntegerField()
+
+
+class DescriptorModel(models.Model):
+    """Has a composite type with a field implementing a custom descriptor"""
+    field = DescriptorType.Field()
