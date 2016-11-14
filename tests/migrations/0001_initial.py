@@ -5,7 +5,14 @@ Migration to create custom types
 
 from django.db import migrations
 
-from ..base import Box, Card, DateRange, OptionalBits, Point, SimpleType
+from ..base import (
+    Box,
+    Card,
+    DateRange,
+    DescriptorType,
+    OptionalBits,
+    Point,
+    SimpleType)
 
 
 class Migration(migrations.Migration):
@@ -21,4 +28,5 @@ class Migration(migrations.Migration):
         Point.Operation(),
         Box.Operation(),
         DateRange.Operation(),
+        DescriptorType.Operation(),
     ]

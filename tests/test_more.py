@@ -5,7 +5,14 @@ Tests for composite fields in combination with other interesting fields.
 from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
-from .base import Box, Card, Hand, Item, Point
+from .base import (
+    Box,
+    Card,
+    DescriptorModel,
+    DescriptorType,
+    Hand,
+    Item,
+    Point)
 
 
 @Hand.fake_me
@@ -95,3 +102,20 @@ class TestNestedCompositeTypes(TestCase):
                          Point(x=1, y=2))
         self.assertEqual(item.bounding_box.top_right,
                          Point(x=4, y=1))
+
+
+class TestCustomDescriptors(TestCase):
+    """
+    Test CompositeTypes with Fields with custom descriptors.
+    """
+
+    def test_create(self):
+        """Test descriptor used on creation"""
+        model = DescriptorModel(field=DescriptorType(value=1))
+        self.assertEqual(model.field.value, 3)
+
+    def test_set(self):
+        """Test descriptor used on assign"""
+        model = DescriptorModel(field=DescriptorType(value=0))
+        model.field.value = 14
+        self.assertEqual(model.field.value, 42)

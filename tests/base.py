@@ -5,6 +5,7 @@ from django_fake_model.models import FakeModel
 from postgres_composite_types import CompositeType
 
 from .compat import ArrayField
+from .fields import TriplingIntegerField
 
 
 # pylint:disable=no-member
@@ -108,3 +109,16 @@ class NamedDateRange(FakeModel):
     """A date-range with a name"""
     name = models.TextField()
     date_range = DateRange.Field()
+
+
+class DescriptorType(CompositeType):
+    """Has a field implementing a custom descriptor"""
+    class Meta:
+        db_type = 'test_custom_descriptor'
+
+    value = TriplingIntegerField()
+
+
+class DescriptorModel(models.Model):
+    """Has a composite type with a field implementing a custom descriptor"""
+    field = DescriptorType.Field()

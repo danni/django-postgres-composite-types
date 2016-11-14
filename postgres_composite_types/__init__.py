@@ -34,6 +34,7 @@ Takes inspiration from:
  - django-postgres
 """
 
+import inspect
 import logging
 import sys
 from collections import OrderedDict
@@ -258,9 +259,38 @@ class CompositeTypeMeta(type):
         if name == 'CompositeType':
             return
 
+        cls._capture_descriptors()
+
         # Register the type on the first database connection
         connection_created.connect(receiver=cls.database_connected,
                                    dispatch_uid=cls._meta.db_type)
+
+    def _capture_descriptors(cls):
+        """Work around for not being able to call contribute_to_class.
+
+        Too much code to fake in our meta objects etc to be able to call
+        contribute_to_class directly, but we still want fields to be able
+        to set custom type descriptors. So we fake a model instead, with the
+        same fields as the composite type, and extract any custom descriptors
+        on that.
+        """
+
+        attrs = {field_name: field for field_name, field in cls._meta.fields}
+
+        # we need to build a unique app label and model name combination for
+        # every composite type so django doesn't complain about model reloads
+        class Meta:
+            app_label = cls.__module__
+        attrs['__module__'] = cls.__module__
+        attrs['Meta'] = Meta
+        model_name = '_Fake{}Model'.format(cls.__name__)
+
+        fake_model = type(model_name, (models.Model,), attrs)
+        for field_name, _ in cls._meta.fields:
+            # default None is for django 1.9
+            attr = getattr(fake_model, field_name, None)
+            if inspect.isdatadescriptor(attr):
+                setattr(cls, field_name, attr)
 
     def database_connected(cls, signal, sender, connection, **kwargs):
         """
