@@ -6,7 +6,13 @@ from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
 from .base import (
-    Box, Card, DescriptorModel, DescriptorType, Hand, Item, Point)
+    Box,
+    Card,
+    DescriptorModel,
+    DescriptorType,
+    Hand,
+    Item,
+    Point)
 
 
 @Hand.fake_me
