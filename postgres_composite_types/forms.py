@@ -168,7 +168,7 @@ class CompositeTypeWidget(forms.Widget):
 
     @property
     def is_hidden(self):
-        return all(w.is_hidden for w in self.widgets)
+        return all(w.is_hidden for w in self.widgets.values())
 
     def render(self, name, value, attrs=None):
         if self.is_localized:
