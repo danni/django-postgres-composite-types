@@ -1,5 +1,5 @@
 [MASTER]
-load-plugins=pylint_mccabe,pylint_django
+load-plugins=pylint.extensions.mccabe,pylint_django
 
 [REPORTS]
 output-format=colorized
