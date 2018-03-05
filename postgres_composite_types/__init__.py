@@ -40,6 +40,7 @@ import logging
 import sys
 from collections import OrderedDict
 
+from django.core.exceptions import ValidationError
 from django.db import migrations, models
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as PostgresDatabaseWrapper
@@ -112,6 +113,10 @@ class BaseField(models.Field):
 
     Meta = None
 
+    default_error_messages = {
+        'bad_json': "to_python() received a string that was not valid JSON",
+    }
+
     def db_type(self, connection):
         LOGGER.debug("db_type")
 
@@ -144,7 +149,13 @@ class BaseField(models.Field):
         # is called with a string, assume it was produced by value_to_string
         # and decode it
         if isinstance(value, str):
-            value = json.loads(value)
+            try:
+                value = json.loads(value)
+            except ValueError:
+                raise ValidationError(
+                    self.error_messages['bad_json'],
+                    code='bad_json',
+                )
             return self.Meta.model(**{
                 name: field.to_python(value.get(name))
                 for name, field in self.Meta.fields

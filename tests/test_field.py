@@ -1,9 +1,11 @@
 """Tests for composite field."""
 
 import datetime
+import json
 from unittest import mock
 
 from django.core import serializers
+from django.core.exceptions import ValidationError
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
@@ -163,6 +165,34 @@ class FieldTests(TestCase):
 
         self.assertEqual(old.bounding_box,
                          new.bounding_box)
+
+    def test_to_python(self):
+        """
+        Test the Field.to_python() method interprets strings as JSON data.
+        """
+        start = datetime.datetime.now()
+        end = datetime.datetime.now() + datetime.timedelta(days=1)
+
+        field = NamedDateRange._meta.get_field('date_range')
+        out = field.to_python(json.dumps({
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }))
+
+        self.assertEqual(out, DateRange(start=start, end=end))
+
+    def test_to_python_bad_json(self):
+        """
+        Test the Field.to_python() handles bad JSON data by raising
+        a ValidationError
+        """
+        field = NamedDateRange._meta.get_field('date_range')
+
+        with self.assertRaises(ValidationError) as context:
+            field.to_python("bogus JSON")
+
+        exception = context.exception
+        self.assertEqual(exception.code, 'bad_json')
 
 
 class TestOptionalFields(TestCase):
