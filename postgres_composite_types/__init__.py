@@ -79,6 +79,7 @@ class QuotedCompositeType(object):
         """
         if protocol is ISQLQuote:
             return self
+
         return None
 
     def prepare(self, connection):
@@ -407,6 +408,7 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
         """
         if protocol is ISQLQuote:
             return QuotedCompositeType(self)
+
         return None
 
     class Field(BaseField):

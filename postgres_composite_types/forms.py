@@ -157,7 +157,8 @@ class CompositeTypeWidget(forms.Widget):
     """
     Takes an ordered dict of widgets to produce a composite form widget
     """
-    template_name = 'postgres_composite_types/forms/widgets/composite_type.html'  # noqa: E501
+    template_name = \
+        'postgres_composite_types/forms/widgets/composite_type.html'
 
     def __init__(self, widgets, **kwargs):
         self.widgets = OrderedDict(
