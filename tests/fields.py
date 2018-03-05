@@ -24,6 +24,7 @@ class TripleOnAssignDescriptor:
 
 class TriplingIntegerField(models.IntegerField):
     """Field that triples assigned value."""
+    # pylint:disable=arguments-differ
     def contribute_to_class(self, cls, name, **kwargs):
         super().contribute_to_class(cls, name, **kwargs)
         setattr(cls, self.name, TripleOnAssignDescriptor(self))

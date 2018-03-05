@@ -7,7 +7,6 @@ from postgres_composite_types import CompositeType
 from .compat import ArrayField
 from .fields import TriplingIntegerField
 
-
 # pylint:disable=no-member
 
 

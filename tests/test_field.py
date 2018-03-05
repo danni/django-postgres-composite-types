@@ -11,9 +11,8 @@ from psycopg2.extensions import adapt
 from postgres_composite_types import composite_type_created
 
 from .base import (
-    DateRange, NamedDateRange,
-    OptionalBits, OptionalModel,
-    SimpleModel, SimpleType)
+    DateRange, NamedDateRange, OptionalBits, OptionalModel, SimpleModel,
+    SimpleType)
 
 
 class TestMigrations(TransactionTestCase):
