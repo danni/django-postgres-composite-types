@@ -37,10 +37,10 @@ import logging
 from collections import OrderedDict
 
 from django import forms
+from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import ugettext as _
 
 from . import CompositeType
-from .compat import prefix_validation_error
 
 LOGGER = logging.getLogger(__name__)
 
