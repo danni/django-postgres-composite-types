@@ -1,13 +1,10 @@
 """Models and types for the tests"""
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
-from django_fake_model.models import FakeModel
 
 from postgres_composite_types import CompositeType
 
 from .fields import TriplingIntegerField
-
-# pylint:disable=no-member
 
 
 class SimpleType(CompositeType):
@@ -21,13 +18,10 @@ class SimpleType(CompositeType):
     c = models.DateTimeField(verbose_name='A date')
 
 
-class SimpleModel(FakeModel):
+class SimpleModel(models.Model):
     """A test model."""
     # pylint:disable=invalid-name
     test_field = SimpleType.Field()
-
-    class Meta:
-        app_label = 'test'
 
 
 class OptionalBits(CompositeType):
@@ -39,7 +33,7 @@ class OptionalBits(CompositeType):
         db_type = 'optional_type'
 
 
-class OptionalModel(FakeModel):
+class OptionalModel(models.Model):
     """A model with an optional composity type"""
     optional_field = OptionalBits.Field(null=True, blank=True)
 
@@ -53,7 +47,7 @@ class Card(CompositeType):
     rank = models.CharField(max_length=2)
 
 
-class Hand(FakeModel):
+class Hand(models.Model):
     """A hand of cards."""
     cards = ArrayField(base_field=Card.Field())
 
@@ -79,17 +73,19 @@ class Box(CompositeType):
     @property
     def bottom_left(self):
         """The bottom-left corner of the box."""
+        # pylint:disable=no-member
         return Point(x=self.top_left.x,
                      y=self.bottom_right.y)
 
     @property
     def top_right(self):
         """The top-right corner of the box."""
+        # pylint:disable=no-member
         return Point(x=self.bottom_right.x,
                      y=self.top_left.y)
 
 
-class Item(FakeModel):
+class Item(models.Model):
     """An item that exists somewhere on a cartesian plane."""
     name = models.CharField(max_length=20)
     bounding_box = Box.Field()
@@ -104,7 +100,7 @@ class DateRange(CompositeType):
     end = models.DateTimeField()   # uses reserved keyword
 
 
-class NamedDateRange(FakeModel):
+class NamedDateRange(models.Model):
     """A date-range with a name"""
     name = models.TextField()
     date_range = DateRange.Field()
