@@ -3,6 +3,7 @@
 import datetime
 from unittest import mock
 
+from django.core import serializers
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
@@ -147,6 +148,21 @@ class FieldTests(TestCase):
         self.assertEqual(
             b"(1, 'b', '1985-10-26T09:00:00'::timestamp)::test_type",
             adapted.getquoted())
+
+    def test_serialize(self):
+        """
+        Check that composite values are correctly handled through Django's
+        serialize/deserialize helpers, used for dumpdata/loaddata.
+        """
+        old = Item(
+            name="table",
+            bounding_box=Box(top_left=Point(x=1, y=1),
+                             bottom_right=Point(x=4, y=2)))
+        out = serializers.serialize("json", [old])
+        new = next(serializers.deserialize("json", out)).object
+
+        self.assertEqual(old.bounding_box,
+                         new.bounding_box)
 
 
 class TestOptionalFields(TestCase):
