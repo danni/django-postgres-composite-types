@@ -15,7 +15,7 @@ env:
 
 matrix:
   include:
-    - env: TOX_ENV=pycodestyle,isort,pylint
+    - env: TOX_ENV=flake8,isort,pylint
       python: '3.6'
 
 install:

@@ -2,7 +2,7 @@ nose
 -egit+https://github.com/django-nose/django-nose.git@master#egg=django-nose
 django_fake_model
 
-pycodestyle
+flake8
 pylint
 pylint_django
 isort
