@@ -1,12 +1,11 @@
 """Models and types for the tests"""
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django_fake_model.models import FakeModel
 
 from postgres_composite_types import CompositeType
 
-from .compat import ArrayField
 from .fields import TriplingIntegerField
-
 
 # pylint:disable=no-member
 

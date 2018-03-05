@@ -80,6 +80,8 @@ class QuotedCompositeType(object):
         if protocol is ISQLQuote:
             return self
 
+        return None
+
     def prepare(self, connection):
         """
         Prepare anything that depends on the database connection, such as
@@ -118,7 +120,7 @@ class BaseField(models.Field):
 
         return self.Meta.db_type
 
-    def formfield(self, **kwargs):
+    def formfield(self, **kwargs):  # pylint:disable=arguments-differ
         """Form field for address."""
         from .forms import CompositeTypeField
 
@@ -259,7 +261,7 @@ class CompositeTypeMeta(type):
         if name == 'CompositeType':
             return
 
-        cls._capture_descriptors()
+        cls._capture_descriptors()  # pylint:disable=no-value-for-parameter
 
         # Register the type on the first database connection
         connection_created.connect(receiver=cls.database_connected,
@@ -406,6 +408,8 @@ class CompositeType(object, metaclass=CompositeTypeMeta):
         """
         if protocol is ISQLQuote:
             return QuotedCompositeType(self)
+
+        return None
 
     class Field(BaseField):
         """

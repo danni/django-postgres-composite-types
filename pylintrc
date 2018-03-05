@@ -1,19 +1,22 @@
 [MASTER]
-load-plugins=pylint_mccabe,pylint_django
+load-plugins=pylint_django
 
 [REPORTS]
 output-format=colorized
 
 [MESSAGES CONTROL]
 disable=
+    arguments-differ,
     attribute-defined-outside-init,
-    bad-builtin,
+    consider-using-ternary,
+    cyclic-import,
     duplicate-code,
     fixme,
+    line-too-long,
     locally-disabled,
     locally-enabled,
-    missing-super-argument,
     model-missing-unicode,
+    no-else-return,
     no-self-use,
     too-few-public-methods,
     too-many-ancestors,

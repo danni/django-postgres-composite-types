@@ -37,11 +37,10 @@ import logging
 from collections import OrderedDict
 
 from django import forms
-from django.utils.safestring import mark_safe
+from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import ugettext as _
 
 from . import CompositeType
-from .compat import prefix_validation_error
 
 LOGGER = logging.getLogger(__name__)
 
@@ -158,6 +157,9 @@ class CompositeTypeWidget(forms.Widget):
     """
     Takes an ordered dict of widgets to produce a composite form widget
     """
+    template_name = \
+        'postgres_composite_types/forms/widgets/composite_type.html'
+
     def __init__(self, widgets, **kwargs):
         self.widgets = OrderedDict(
             (name, widget() if isinstance(widget, type) else widget)
@@ -170,24 +172,32 @@ class CompositeTypeWidget(forms.Widget):
     def is_hidden(self):
         return all(w.is_hidden for w in self.widgets)
 
-    def render(self, name, value, attrs=None):
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        final_attrs = context['widget']['attrs']
+        id_ = context['widget']['attrs'].get('id')
+
         if self.is_localized:
             for widget in self.widgets.values():
                 widget.is_localized = self.is_localized
 
-        output = []
-        final_attrs = self.build_attrs(attrs)
-        id_ = final_attrs.get('id')
-
+        subwidgets = {}
         for subname, widget in self.widgets.items():
+            widget_attrs = final_attrs.copy()
             if id_:
-                final_attrs = dict(final_attrs, id='%s-%s' % (id_, subname))
+                widget_attrs['id'] = '%s-%s' % (id_, subname)
 
-            output.append(widget.render('%s-%s' % (name, subname),
-                                        getattr(value, subname, None),
-                                        final_attrs))
+            subwidgets[subname] = widget.render('%s-%s' % (name, subname),
+                                                getattr(value, subname, None),
+                                                final_attrs)
+            widget_context = widget.get_context(
+                '%s-%s' % (name, subname),
+                getattr(value, subname, None),
+                widget_attrs)
+            subwidgets[subname] = widget_context['widget']
 
-        return mark_safe(''.join(output))
+        context['widget']['subwidgets'] = subwidgets
+        return context
 
     def value_from_datadict(self, data, files, name):
         return {

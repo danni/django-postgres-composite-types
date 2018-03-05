@@ -11,6 +11,13 @@ Install with:
 
     pip install django-postgres-composite-types
 
+Then add 'postgres_composite_types' to your `INSTALLED_APPS`:
+
+    INSTALLED_APPS = [
+        # ... Other apps
+        'postgres_composite_types',
+    ]
+
 Define a type and add it to a model:
 
 ```python
