@@ -1,8 +1,11 @@
 """Tests for composite field."""
 
 import datetime
+import json
 from unittest import mock
 
+from django.core import serializers
+from django.core.exceptions import ValidationError
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
@@ -10,9 +13,9 @@ from psycopg2.extensions import adapt
 
 from postgres_composite_types import composite_type_created
 
-from .base import (
-    DateRange, NamedDateRange, OptionalBits, OptionalModel, SimpleModel,
-    SimpleType)
+from .models import (
+    Box, DateRange, Item, NamedDateRange, OptionalBits, OptionalModel, Point,
+    SimpleModel, SimpleType)
 
 
 class TestMigrations(TransactionTestCase):
@@ -91,8 +94,6 @@ class TestMigrations(TransactionTestCase):
         self.assertTrue(self.does_type_exist(DateRange._meta.db_type))
 
 
-@SimpleModel.fake_me
-@NamedDateRange.fake_me
 class FieldTests(TestCase):
     """Tests for composite field."""
 
@@ -101,7 +102,7 @@ class FieldTests(TestCase):
         # pylint:disable=invalid-name
         t = SimpleType(a=1, b="β ☃", c=datetime.datetime(1985, 10, 26, 9, 0))
         m = SimpleModel(test_field=t)
-        m.save()  # pylint:disable=no-member
+        m.save()
 
         # Retrieve from DB
         m = SimpleModel.objects.get(id=1)
@@ -150,8 +151,50 @@ class FieldTests(TestCase):
             b"(1, 'b', '1985-10-26T09:00:00'::timestamp)::test_type",
             adapted.getquoted())
 
+    def test_serialize(self):
+        """
+        Check that composite values are correctly handled through Django's
+        serialize/deserialize helpers, used for dumpdata/loaddata.
+        """
+        old = Item(
+            name="table",
+            bounding_box=Box(top_left=Point(x=1, y=1),
+                             bottom_right=Point(x=4, y=2)))
+        out = serializers.serialize("json", [old])
+        new = next(serializers.deserialize("json", out)).object
 
-@OptionalModel.fake_me
+        self.assertEqual(old.bounding_box,
+                         new.bounding_box)
+
+    def test_to_python(self):
+        """
+        Test the Field.to_python() method interprets strings as JSON data.
+        """
+        start = datetime.datetime.now()
+        end = datetime.datetime.now() + datetime.timedelta(days=1)
+
+        field = NamedDateRange._meta.get_field('date_range')
+        out = field.to_python(json.dumps({
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }))
+
+        self.assertEqual(out, DateRange(start=start, end=end))
+
+    def test_to_python_bad_json(self):
+        """
+        Test the Field.to_python() handles bad JSON data by raising
+        a ValidationError
+        """
+        field = NamedDateRange._meta.get_field('date_range')
+
+        with self.assertRaises(ValidationError) as context:
+            field.to_python("bogus JSON")
+
+        exception = context.exception
+        self.assertEqual(exception.code, 'bad_json')
+
+
 class TestOptionalFields(TestCase):
     """
     Test optional composite type fields, and optional fields on composite types
@@ -160,18 +203,18 @@ class TestOptionalFields(TestCase):
     def test_null_field_save_and_load(self):
         """Save and load a null composite field"""
         model = OptionalModel(optional_field=None)
-        model.save()  # pylint:disable=no-member
+        model.save()
 
-        model = OptionalModel.objects.get(id=1)
+        model = OptionalModel.objects.get()
         self.assertIsNone(model.optional_field)
 
     def test_null_subfield_save_and_load(self):
         """Save and load a null composite field"""
         model = OptionalModel(optional_field=OptionalBits(
             required='foo', optional=None))
-        model.save()  # pylint:disable=no-member
+        model.save()
 
-        model = OptionalModel.objects.get(id=1)
+        model = OptionalModel.objects.get()
         self.assertIsNotNone(model.optional_field)
         self.assertEqual(model.optional_field, OptionalBits(
             required='foo', optional=None))
@@ -183,7 +226,7 @@ class TestOptionalFields(TestCase):
         """
         model = OptionalModel(optional_field=OptionalBits(
             required='foo', optional='bar'))
-        model.save()  # pylint:disable=no-member
+        model.save()
 
         model = OptionalModel.objects.get(id=1)
         self.assertIsNotNone(model.optional_field)

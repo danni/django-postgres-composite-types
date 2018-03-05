@@ -5,7 +5,7 @@ Migration to create custom types
 
 from django.db import migrations
 
-from ..base import (
+from ..models import (
     Box,
     Card,
     DateRange,

@@ -5,11 +5,10 @@ Tests for composite fields in combination with other interesting fields.
 from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
-from .base import (
+from .models import (
     Box, Card, DescriptorModel, DescriptorType, Hand, Item, Point)
 
 
-@Hand.fake_me
 class TestArrayFields(TestCase):
     """
     Test ArrayFields combined with CompositeType.Fields
@@ -27,7 +26,7 @@ class TestArrayFields(TestCase):
             Card('♡', 'J'),
             Card('♡', '10'),
         ])
-        hand.save()  # pylint:disable=no-member
+        hand.save()
 
         hand = Hand.objects.get()
         self.assertEqual(hand.cards, [
@@ -49,7 +48,7 @@ class TestArrayFields(TestCase):
             Card('♡', 'J'),
             Card('♡', '10'),
         ])
-        hand.save()  # pylint:disable=no-member
+        hand.save()
 
         queen_of_hearts = Card('♡', 'Q')
         jack_of_spades = Card('♠', 'J')
@@ -71,7 +70,6 @@ class TestArrayFields(TestCase):
         self.assertIn(expected_deconstruction, text)
 
 
-@Item.fake_me
 class TestNestedCompositeTypes(TestCase):
     """
     Test CompositeTypes within CompositeTypes
@@ -84,7 +82,7 @@ class TestNestedCompositeTypes(TestCase):
         item = Item(name="table",
                     bounding_box=Box(top_left=Point(x=1, y=1),
                                      bottom_right=Point(x=4, y=2)))
-        item.save()  # pylint:disable=no-member
+        item.save()
 
         item = Item.objects.get()
         self.assertEqual(item.name, "table")
