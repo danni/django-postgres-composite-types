@@ -17,6 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'SECRET'
 
 INSTALLED_APPS = [
+    'postgres_composite_types',
     'tests',
     'django_nose',
 ]
