@@ -109,6 +109,16 @@ class CompositeTypeField(forms.Field):
                                  self.widget.widgets.values()):
             widget.attrs['placeholder'] = field.label
 
+    def prepare_value(self, value):
+        """
+        Prepare the field data for the CompositeTypeWidget, which expects data
+        as a dict.
+        """
+        if isinstance(value, CompositeType):
+            return value.__to_dict__()
+
+        return value
+
     def validate(self, value):
         pass
 
@@ -155,7 +165,9 @@ class CompositeTypeField(forms.Field):
 
 class CompositeTypeWidget(forms.Widget):
     """
-    Takes an ordered dict of widgets to produce a composite form widget
+    Takes an ordered dict of widgets to produce a composite form widget. This
+    widget knows nothing about CompositeTypes, and works only with dicts for
+    initial and output data.
     """
     template_name = \
         'postgres_composite_types/forms/widgets/composite_type.html'
@@ -170,7 +182,7 @@ class CompositeTypeWidget(forms.Widget):
 
     @property
     def is_hidden(self):
-        return all(w.is_hidden for w in self.widgets)
+        return all(w.is_hidden for w in self.widgets.values())
 
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
@@ -187,12 +199,9 @@ class CompositeTypeWidget(forms.Widget):
             if id_:
                 widget_attrs['id'] = '%s-%s' % (id_, subname)
 
-            subwidgets[subname] = widget.render('%s-%s' % (name, subname),
-                                                getattr(value, subname, None),
-                                                final_attrs)
             widget_context = widget.get_context(
                 '%s-%s' % (name, subname),
-                getattr(value, subname, None),
+                value.get(subname),
                 widget_attrs)
             subwidgets[subname] = widget_context['widget']
 
