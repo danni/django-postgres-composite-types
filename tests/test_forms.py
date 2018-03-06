@@ -55,6 +55,13 @@ class TestField(SimpleTestCase):
         # Errors should be formatted like 'Label: Error message'
         self.assertEqual(str(form.errors['simple_field'][0]),
                          'A number: Enter a whole number.')
+        # Fields with validation errors should render with their invalid input
+        self.assertHTMLEqual(
+            str(form['simple_field']['a']),
+            """
+            <input id="id_simple_field-a" name="simple_field-a"
+                placeholder="A number" required type="number" value="one" />
+            """)
 
     def test_subfield_validation(self):
         """Errors on subfields should be accessible"""
