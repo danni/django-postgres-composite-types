@@ -3,6 +3,7 @@ import datetime
 
 from django import forms
 from django.test import SimpleTestCase
+from django.test.testcases import assert_and_parse_html
 
 from postgres_composite_types.forms import CompositeTypeField
 
@@ -55,13 +56,14 @@ class TestField(SimpleTestCase):
         # Errors should be formatted like 'Label: Error message'
         self.assertEqual(str(form.errors['simple_field'][0]),
                          'A number: Enter a whole number.')
+
         # Fields with validation errors should render with their invalid input
-        self.assertHTMLEqual(
-            str(form['simple_field']['a']),
+        self.assertHTMLContains(
             """
             <input id="id_simple_field-a" name="simple_field-a"
                 placeholder="A number" required type="number" value="one" />
-            """)
+            """,
+            str(form['simple_field']))
 
     def test_subfield_validation(self):
         """Errors on subfields should be accessible"""
@@ -91,6 +93,42 @@ class TestField(SimpleTestCase):
         a_bound_field = composite_bound_field['a']
         self.assertEqual(a_bound_field.html_name,
                          'step1-simple_field-a')
+
+    def test_initial_data(self):
+        """
+        Check that forms with initial data render with the fields prepopulated.
+        """
+        initial = SimpleType(
+            a=1, b='foo', c=datetime.datetime(2016, 5, 24, 17, 38, 32))
+        form = self.SimpleForm(initial={'simple_field': initial})
+
+        self.assertHTMLContains(
+            """
+            <input id="id_simple_field-a" name="simple_field-a"
+                placeholder="A number" required type="number" value="1" />
+            """,
+            str(form['simple_field']))
+
+    # pylint:disable=invalid-name
+    def assertHTMLContains(self, text, content, count=None, msg=None):
+        """
+        Assert that the HTML snippet ``text`` is found within the HTML snippet
+        ``content``. Like assertContains, but works with plain strings instead
+        of Response instances.
+        """
+        content = assert_and_parse_html(
+            self, content, None, "HTML content to search in is not valid:")
+        text = assert_and_parse_html(
+            self, text, None, "HTML content to search for is not valid:")
+
+        matches = content.count(text)
+        if count is None:
+            self.assertTrue(
+                matches > 0, msg=msg or 'Could not find HTML snippet')
+        else:
+            self.assertEqual(
+                matches, count,
+                msg=msg or 'Found %d matches, expecting %d' % (matches, count))
 
 
 class OptionalFieldTests(SimpleTestCase):
