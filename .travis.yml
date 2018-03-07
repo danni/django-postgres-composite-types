@@ -41,4 +41,4 @@ deploy:
     tags: true
     all_branches: true
     python: 3.5
-    condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)" -a "$DJANGO" = "2.0"'
+    condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)"'
