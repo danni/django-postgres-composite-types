@@ -37,9 +37,8 @@ deploy:
   user: danni
   password:
     secure: ANTFo5AiYSeS+63+aMqxvtdPS0O5E8vNhFjpl4ZcDzdMFdb/08PRdh8QSMGb9/yVKe6tnoB5nYJ9MlsIAO4mNaodxAE4WyolCP9PMfwpELCGFLKpx2MluFgYGXogUmK8YR7RkjbMmqgd5J253wsnFLzVwVla2TLORMWe83kix1FKYslDVKKtCnY/OpYaSQC5xM/zgNqX9sDaVTkuYj/UPXgxzZ/pK9sIYKHYkLw5q5+14UgH9aqXulwthWFrIpPdwYobNNF5UVNsLuiRhngt0BFudx83h3IhEDFRAFhswZmpNOqQXpmWRYKurqS/KDBS81Cubd4Zz2Ic49cKKPzKv6Pm1zWnRJVsvwiSEk5H1JVGG6VqkTO4p0gUGUxZlvfE2KCX6IeKcEwMEeeTbZQZxNDfFIaBZllG4w7YgZWrzWieSe7ZG/aX58vYpRmQYkfzz6dexmxMnazMhGqQX9WtrcRgTffGgMjmzwdx+tCag4U83O5KkWJz+IPDcKifpbZ4rTOrHN3xsye12APbxxRdOALcX6b0hgOHLbO7wQuiZo9UnzQFKwWE4O/GI5yEO6yL7zDXq5tjElv9kXkYzdCyrxIX44gHp1o6TiVmZ0279VQQ/MWx/Grrh/1VP2IfOsy3b7pG4XKWy/5yU69SEb3R6L280BWVceTeonX0FpL4gOw=
-  server: https://pypi.python.org/pypi
   on:
     tags: true
     all_branches: true
     python: 3.5
-    condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)"'
+    condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)" -a "$DJANGO" = "2.0"'
