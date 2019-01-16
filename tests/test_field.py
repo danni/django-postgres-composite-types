@@ -14,8 +14,9 @@ from psycopg2.extensions import adapt
 from postgres_composite_types import composite_type_created
 
 from .models import (
-    Box, DateRange, Item, NamedDateRange, OptionalBits, OptionalModel, Point,
-    SimpleModel, SimpleType)
+    Box, CustomFieldClassModel, CustomFieldClassType, DateRange, Item,
+    NamedDateRange, OptionalBits, OptionalModel, Point, SimpleModel,
+    SimpleType)
 
 
 class TestMigrations(TransactionTestCase):
@@ -232,3 +233,17 @@ class TestOptionalFields(TestCase):
         self.assertIsNotNone(model.optional_field)
         self.assertEqual(model.optional_field, OptionalBits(
             required='foo', optional='bar'))
+
+
+class TestCustomBaseClasses(TestCase):
+    """
+    Test overriding placeholder classes in CompositeType
+    """
+    def test_custom_field_class(self):
+        model = CustomFieldClassModel(field=None)
+        model.save()
+
+        model = CustomFieldClassModel.objects.get(id=1)
+        field = model._meta.get_field('field')
+        val = field.test_method()
+        self.assertEqual(val, 42)

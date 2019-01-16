@@ -273,8 +273,9 @@ class CompositeTypeMeta(type):
         meta_obj.fields = fields
 
         # create the field for this Type
+        field_base_class = attrs['Field'] if 'Field' in attrs else BaseField
         attrs['Field'] = type('%sField' % name,
-                              (BaseField,),
+                              (field_base_class,),
                               {'Meta': meta_obj})
 
         # add field class to the module in which the composite type class lives

@@ -12,7 +12,8 @@ from ..models import (
     DescriptorType,
     OptionalBits,
     Point,
-    SimpleType)
+    SimpleType,
+    CustomFieldClassType)
 
 
 class Migration(migrations.Migration):
@@ -29,4 +30,5 @@ class Migration(migrations.Migration):
         Box.Operation(),
         DateRange.Operation(),
         DescriptorType.Operation(),
+        CustomFieldClassType.Operation(),
     ]

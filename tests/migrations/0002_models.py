@@ -59,4 +59,11 @@ class Migration(migrations.Migration):
                 ('test_field', tests.models.SimpleTypeField()),
             ],
         ),
+        migrations.CreateModel(
+            name='CustomFieldClassModel',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('field', tests.models.CustomFieldClassTypeField(blank=True, null=True)),
+            ]
+        )
     ]

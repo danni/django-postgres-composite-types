@@ -2,7 +2,7 @@
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 
-from postgres_composite_types import CompositeType
+from postgres_composite_types import BaseField, CompositeType
 
 from .fields import TriplingIntegerField
 
@@ -117,3 +117,21 @@ class DescriptorType(CompositeType):
 class DescriptorModel(models.Model):
     """Has a composite type with a field implementing a custom descriptor"""
     field = DescriptorType.Field()
+
+
+class CustomFieldClassType(CompositeType):
+    """Has a custom Field class implementation"""
+    class Meta:
+        db_type = 'test_custom_field_class'
+
+    value = models.IntegerField()
+
+    class Field(BaseField):
+        def test_method(self):
+            """Test method to be present on field instance"""
+            return 42
+
+
+class CustomFieldClassModel(models.Model):
+    """Uses the custom field with a custom field class"""
+    field = CustomFieldClassType.Field(null=True, blank=True)
