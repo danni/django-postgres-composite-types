@@ -117,6 +117,9 @@ class CompositeTypeField(forms.Field):
         if isinstance(value, CompositeType):
             return value.__to_dict__()
 
+        if value is None:
+            return {}
+
         return value
 
     def validate(self, value):

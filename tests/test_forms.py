@@ -109,6 +109,19 @@ class TestField(SimpleTestCase):
             """,
             str(form['simple_field']))
 
+    def test_null_initial_data(self):
+        """
+        Check that forms with null initial data render with the fields.
+        """
+        form = self.SimpleForm(initial={'simple_field': None})
+
+        self.assertHTMLContains(
+            """
+            <input type="number" name="simple_field-a" placeholder="A number"
+            required id="id_simple_field-a" />
+            """,
+            str(form['simple_field']))
+
     # pylint:disable=invalid-name
     def assertHTMLContains(self, text, content, count=None, msg=None):
         """
