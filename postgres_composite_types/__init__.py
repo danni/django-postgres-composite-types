@@ -55,7 +55,7 @@ LOGGER = logging.getLogger(__name__)
 __all__ = ['CompositeType']
 
 
-class QuotedCompositeType(object):
+class QuotedCompositeType():
     """
     A wrapper for CompositeTypes that knows how to convert itself into a safe
     postgres representation. Created from CompositeType.__conform__
@@ -234,7 +234,7 @@ class CompositeTypeMeta(type):
     """Metaclass for Type."""
 
     @classmethod
-    def __prepare__(mcs, name, bases):
+    def __prepare__(cls, name, bases):
         """
         Guarantee the ordering of the declared attrs.
 
@@ -243,10 +243,10 @@ class CompositeTypeMeta(type):
         """
         return OrderedDict()
 
-    def __new__(mcs, name, bases, attrs):
+    def __new__(cls, name, bases, attrs):
         # Only apply the metaclass to our subclasses
         if name == 'CompositeType':
-            return super().__new__(mcs, name, bases, attrs)
+            return super().__new__(cls, name, bases, attrs)
 
         # retrieve any fields from our declaration
         fields = []
@@ -291,7 +291,7 @@ class CompositeTypeMeta(type):
                                (BaseCaster,),
                                {'Meta': meta_obj})
 
-        new_cls = super().__new__(mcs, name, bases, attrs)
+        new_cls = super().__new__(cls, name, bases, attrs)
         new_cls._meta = meta_obj
 
         meta_obj.model = new_cls
@@ -365,7 +365,7 @@ composite_type_created = Signal()
 # pylint:enable=invalid-name
 
 
-class CompositeType(object, metaclass=CompositeTypeMeta):
+class CompositeType(metaclass=CompositeTypeMeta):
     """
     A new composite type stored in Postgres.
     """
