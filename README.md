@@ -22,7 +22,7 @@ Define a type and add it to a model:
 
 ```python
 from django.db import models
-from postgres_composite_type import CompositeType
+from postgres_composite_types import CompositeType
 
 class Address(CompositeType):
     """An address."""
