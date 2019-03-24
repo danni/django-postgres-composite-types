@@ -146,7 +146,7 @@ class CompositeTypeField(forms.Field):
                 except forms.ValidationError as error:
                     errors.append(prefix_validation_error(
                         error, code='field_invalid',
-                        prefix='%(label)s: ', params={'label': field.label}))
+                        prefix='%(label)s:', params={'label': field.label}))
             if errors:
                 raise forms.ValidationError(errors)
             value = self.model(**cleaned_data)
