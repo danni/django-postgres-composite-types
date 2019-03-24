@@ -144,6 +144,17 @@ Lookups and indexes are not implemented yet
 ([bug #9](https://github.com/danni/django-postgres-composite-types/issues/9),
 [bug #10](https://github.com/danni/django-postgres-composite-types/issues/10)).
 
+Running Tests
+-------------------
+Clone the repository, go to it's base directory and run the following commands.
+
+    pip install -r requirements.in
+    pip install -r test_requirements.in
+    export PYTHONPATH="$(pwd)"
+    export DJANGO_SETTINGS_MODULE='tests.settings'
+    django-admin test
+
+
 Authors
 -------
 
