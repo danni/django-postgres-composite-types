@@ -218,6 +218,12 @@ class CompositeTypeWidget(forms.Widget):
             for subname, widget in self.widgets.items()
         }
 
+    def value_omitted_from_data(self, data, files, name):
+        for key in data:
+            if key.startswith('{}-'.format(name)):
+                return False
+        return True
+
     def id_for_label(self, id_):
         """
         Wrapper around the field widget's `id_for_label` method.

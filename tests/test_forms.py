@@ -122,6 +122,17 @@ class TestField(SimpleTestCase):
             """,
             str(form['simple_field']))
 
+    def test_value_omission_check_inside_widget(self):
+        form = self.SimpleForm()
+        widget = form.fields['simple_field'].widget
+        self.assertFalse(
+            widget.value_omitted_from_data(
+                data=self.simple_valid_data,
+                files=[],
+                name='simple_field',
+            )
+        )
+
     # pylint:disable=invalid-name
     def assertHTMLContains(self, text, content, count=None, msg=None):
         """
