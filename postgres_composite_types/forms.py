@@ -36,6 +36,7 @@ import copy
 import logging
 from collections import OrderedDict
 
+import django
 from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import ugettext as _
@@ -144,9 +145,11 @@ class CompositeTypeField(forms.Field):
                 try:
                     cleaned_data[name] = field.clean(value.get(name))
                 except forms.ValidationError as error:
+                    prefix = '%(label)s:' if django.__version__ >= '2.1.0' \
+                             else '%(label)s: '
                     errors.append(prefix_validation_error(
                         error, code='field_invalid',
-                        prefix='%(label)s:', params={'label': field.label}))
+                        prefix=prefix, params={'label': field.label}))
             if errors:
                 raise forms.ValidationError(errors)
             value = self.model(**cleaned_data)
