@@ -219,10 +219,8 @@ class CompositeTypeWidget(forms.Widget):
         }
 
     def value_omitted_from_data(self, data, files, name):
-        for key in data:
-            if key.startswith('{}-'.format(name)):
-                return False
-        return True
+        prefix = '{}-'.format(name)
+        return not any(key.startswith(prefix) for key in data)
 
     def id_for_label(self, id_):
         """
