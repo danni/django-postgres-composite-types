@@ -36,8 +36,7 @@ import copy
 import logging
 from collections import OrderedDict
 
-from django import VERSION
-from django import forms
+from django import VERSION, forms
 from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import ugettext as _
 

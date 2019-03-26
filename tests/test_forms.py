@@ -123,6 +123,10 @@ class TestField(SimpleTestCase):
             str(form['simple_field']))
 
     def test_value_omission_check_inside_widget(self):
+        """
+        Assert that CompositeTypeWidget.value_omitted_from_data function
+        will return False when passing valid data.
+        """
         form = self.SimpleForm()
         widget = form.fields['simple_field'].widget
         self.assertFalse(
