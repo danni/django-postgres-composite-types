@@ -1,5 +1,6 @@
 [MASTER]
 load-plugins=pylint_django
+ignore=migrations
 
 [REPORTS]
 output-format=colorized
@@ -16,6 +17,7 @@ disable=
     locally-disabled,
     locally-enabled,
     model-missing-unicode,
+    no-else-raise,
     no-else-return,
     no-self-use,
     too-few-public-methods,
