@@ -148,12 +148,12 @@ Running Tests
 -------------------
 Clone the repository, go to it's base directory and run the following commands.
 
-    pip install -r requirements.in
-    pip install -r test_requirements.in
-    export PYTHONPATH="$(pwd)"
-    export DJANGO_SETTINGS_MODULE='tests.settings'
-    django-admin test
+    pip install tox
+    tox
 
+Or if you want a specific environment
+
+    tox -e py35-dj2.0
 
 Authors
 -------
