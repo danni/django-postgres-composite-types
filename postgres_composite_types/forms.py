@@ -36,13 +36,15 @@ import copy
 import logging
 from collections import OrderedDict
 
-from django import forms
+from django import VERSION, forms
 from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import ugettext as _
 
 from . import CompositeType
 
 LOGGER = logging.getLogger(__name__)
+
+DJANGO21 = VERSION >= (2, 1)
 
 
 class CompositeBoundField(forms.BoundField):
@@ -144,9 +146,13 @@ class CompositeTypeField(forms.Field):
                 try:
                     cleaned_data[name] = field.clean(value.get(name))
                 except forms.ValidationError as error:
+                    if DJANGO21:
+                        prefix = '%(label)s:'
+                    else:
+                        prefix = '%(label)s: '
                     errors.append(prefix_validation_error(
                         error, code='field_invalid',
-                        prefix='%(label)s: ', params={'label': field.label}))
+                        prefix=prefix, params={'label': field.label}))
             if errors:
                 raise forms.ValidationError(errors)
             value = self.model(**cleaned_data)
@@ -217,6 +223,10 @@ class CompositeTypeWidget(forms.Widget):
                                                 '%s-%s' % (name, subname))
             for subname, widget in self.widgets.items()
         }
+
+    def value_omitted_from_data(self, data, files, name):
+        prefix = '{}-'.format(name)
+        return not any(key.startswith(prefix) for key in data)
 
     def id_for_label(self, id_):
         """

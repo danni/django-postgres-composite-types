@@ -22,7 +22,7 @@ Define a type and add it to a model:
 
 ```python
 from django.db import models
-from postgres_composite_type import CompositeType
+from postgres_composite_types import CompositeType
 
 class Address(CompositeType):
     """An address."""
@@ -143,6 +143,17 @@ with future PostgreSQL types.
 Lookups and indexes are not implemented yet
 ([bug #9](https://github.com/danni/django-postgres-composite-types/issues/9),
 [bug #10](https://github.com/danni/django-postgres-composite-types/issues/10)).
+
+Running Tests
+-------------------
+Clone the repository, go to it's base directory and run the following commands.
+
+    pip install tox
+    tox
+
+Or if you want a specific environment
+
+    tox -e py35-dj2.0
 
 Authors
 -------
