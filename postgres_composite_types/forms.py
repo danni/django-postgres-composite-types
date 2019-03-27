@@ -146,8 +146,10 @@ class CompositeTypeField(forms.Field):
                 try:
                     cleaned_data[name] = field.clean(value.get(name))
                 except forms.ValidationError as error:
-                    prefix = '%(label)s:' if DJANGO21 \
-                             else '%(label)s: '
+                    if DJANGO21:
+                        prefix = '%(label)s:'
+                    else:
+                        prefix = '%(label)s: '
                     errors.append(prefix_validation_error(
                         error, code='field_invalid',
                         prefix=prefix, params={'label': field.label}))
