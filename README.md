@@ -4,6 +4,13 @@ Django Postgres composite types
 An implementation of Postgres' [composite types](http://www.postgresql.org/docs/current/static/rowtypes.html)
 for [Django](https://docs.djangoproject.com/en/1.9/).
 
+Difference from the fork
+-----
+
+As of date, support for Django JSON form has been added to support the array of composites in the django admin
+https://github.com/bhch/django-jsonform. The support is not good enough for a pull request, but it is at a working state.
+The individual field templates are not as nice as the composite field widget from the parent repo here, but good enough!
+
 Usage
 -----
 

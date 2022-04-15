@@ -34,11 +34,20 @@ Takes inspiration from django.forms.MultiValueField/MultiWidget.
 
 import copy
 import logging
+import json
 from collections import OrderedDict
 
 from django import VERSION, forms
+from django.db import models
+from django.forms.widgets import TextInput
+
 from django.contrib.postgres.utils import prefix_validation_error
+from django.core.exceptions import ImproperlyConfigured
+from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.forms import SimpleArrayField
 from django.utils.translation import ugettext as _
+
+from django_jsonform.widgets import JSONFormWidget
 
 from . import CompositeType
 
@@ -110,6 +119,18 @@ class CompositeTypeField(forms.Field):
         for field, widget in zip(fields.values(),
                                  self.widget.widgets.values()):
             widget.attrs['placeholder'] = field.label
+
+    def get_schema(self):
+        schema = {'type': 'object', 'properties': {}}
+        for name, field in self.fields.items():
+            if isinstance(field, CompositeTypeField):
+                field_schema = field.get_schema()
+            elif isinstance(field, models.IntegerField):
+                field_schema = {'type': 'number'}
+            else:
+                field_schema = {'type': 'string'}
+            schema['properties'][name] = field_schema
+        return schema
 
     def prepare_value(self, value):
         """
@@ -239,3 +260,78 @@ class CompositeTypeWidget(forms.Widget):
             return '%s-%s' % (id_, name)
 
         return id_
+
+
+class CompositesArrayField(ArrayField):
+    def __init__(self, *args, **kwargs):
+        if hasattr(ArrayField, 'mock_field'):
+            raise ImproperlyConfigured('ArrayField requires psycopg2 to be installed.')
+
+        self.nested = kwargs.pop('nested', False)
+        super().__init__(*args, **kwargs)
+
+    def formfield(self, **kwargs):
+        return super().formfield(**{'form_class': CompositesArrayFormField, 'nested': self.nested, **kwargs})
+
+class CompositesArrayFormField(SimpleArrayField):
+    def __init__(self, base_field, **kwargs):
+        self.base_field = base_field
+        self.max_items = kwargs.get('max_length', kwargs.get('size', None))
+        self.min_items = kwargs.get('min_length')
+
+        self.nested = kwargs.pop('nested', False)
+        if not self.nested:
+            self.widget = JSONFormWidget(schema=self.get_schema())
+        else:
+            self.widget = TextInput
+        kwargs['widget'] = self.widget
+
+        super().__init__(base_field, **kwargs)
+
+
+    def composite_prep(self, value):
+        """
+        Prepare the field data for the CompositeTypeWidget, which expects data
+        as a dict.
+        """
+        if isinstance(value, CompositeType):
+            prepped_fields = []
+            for name, field in value._meta.fields:
+                if isinstance(getattr(value, name), CompositeType):
+                    prepped_fields.append((name, self.composite_prep(getattr(value, name))))
+                else:
+                    prepped_fields.append((name, field.get_prep_value(getattr(value, name))))
+            return OrderedDict(prepped_fields)
+
+        if value is None:
+            return {}
+
+        return value
+
+    def prepare_value(self, value):
+        if isinstance(value, list):
+            value = [(self.composite_prep(k) if isinstance(k, CompositeType) else json.dumps(k)) for k in value]
+        return json.dumps(value)
+
+    def to_python(self, value):
+        value = json.loads(value)
+        return super().to_python(value)
+
+    def get_schema(self):
+        schema = {'type': 'array'}
+        if isinstance(self.base_field, CompositesArrayFormField):
+            items = self.base_field.get_schema()
+        elif isinstance(self.base_field, CompositeTypeField):
+            items = self.base_field.get_schema()
+        elif  isinstance(self.base_field, models.IntegerField):
+            items = {'type': 'number'}
+        else:
+            items = {'type': 'string'}
+
+        schema['items'] = items
+
+        if self.max_items:
+            schema['max_items'] = self.max_items
+        if self.min_items:
+            schema['min_items'] = self.min_items
+        return schema
