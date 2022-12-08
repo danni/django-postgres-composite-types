@@ -20,6 +20,7 @@ pylint-django = ">=2.5.3"
 isort = "^5.10.1"
 pre-commit = "^2.9.2"
 django-nose = "^1.4.7"
+black = "^22.10.0"
 
 [build-system]
 requires = ["poetry-core"]
