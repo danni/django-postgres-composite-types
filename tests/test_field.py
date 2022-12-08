@@ -26,6 +26,33 @@ from .models import (
 )
 
 
+def does_type_exist(type_name):
+    """
+    Check if a composite type exists in the database
+    """
+    sql = "select exists (select 1 from pg_type where typname = %s);"
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [type_name])
+        row = cursor.fetchone()
+        return row[0]
+
+
+def migrate(targets):
+    """
+    Migrate to a new state.
+
+    MigrationExecutors can not be reloaded, as they cache the state of the
+    migrations when created. Attempting to reuse one might make some
+    migrations not run, as it thinks they have already been run.
+    """
+    executor = MigrationExecutor(connection)
+    executor.migrate(targets)
+
+    # Cant load state for apps in the initial empty state
+    state_nodes = [node for node in targets if node[1] is not None]
+    return executor.loader.project_state(state_nodes).apps
+
+
 class TestMigrations(TransactionTestCase):
     """
     Taken from
@@ -38,50 +65,25 @@ class TestMigrations(TransactionTestCase):
     migrate_from = [("tests", None)]  # Before the first migration
     migrate_to = [("tests", "0001_initial")]
 
-    def does_type_exist(self, type_name):
-        """
-        Check if a composite type exists in the database
-        """
-        sql = "select exists (select 1 from pg_type where typname = %s);"
-        with connection.cursor() as cursor:
-            cursor.execute(sql, [type_name])
-            row = cursor.fetchone()
-            return row[0]
-
-    def migrate(self, targets):
-        """
-        Migrate to a new state.
-
-        MigrationExecutors can not be reloaded, as they cache the state of the
-        migrations when created. Attempting to reuse one might make some
-        migrations not run, as it thinks they have already been run.
-        """
-        executor = MigrationExecutor(connection)
-        executor.migrate(targets)
-
-        # Cant load state for apps in the initial empty state
-        state_nodes = [node for node in targets if node[1] is not None]
-        return executor.loader.project_state(state_nodes).apps
-
     def test_migration(self):
         """Data data migration."""
 
         # The migrations have already been run, and the type already exists in
         # the database
-        self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
+        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
 
         # Run the migration backwards to check the type is deleted
-        self.migrate(self.migrate_from)
+        migrate(self.migrate_from)
 
         # The type should now not exist
-        self.assertFalse(self.does_type_exist(SimpleType._meta.db_type))
+        self.assertFalse(does_type_exist(SimpleType._meta.db_type))
 
         # A signal is fired when the migration creates the type
         signal_func = mock.Mock()
         composite_type_created.connect(receiver=signal_func, sender=SimpleType)
 
         # Run the migration forwards to create the type again
-        self.migrate(self.migrate_to)
+        migrate(self.migrate_to)
 
         # The signal should have been sent
         self.assertEqual(signal_func.call_count, 1)
@@ -98,15 +100,15 @@ class TestMigrations(TransactionTestCase):
         )
 
         # The type should now exist again
-        self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
+        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
 
     def test_migration_quoting(self):
         """Test that migration SQL is generated with correct quoting"""
 
         # The migrations have already been run, and the type already exists in
         # the database
-        self.migrate(self.migrate_to)
-        self.assertTrue(self.does_type_exist(DateRange._meta.db_type))
+        migrate(self.migrate_to)
+        self.assertTrue(does_type_exist(DateRange._meta.db_type))
 
 
 class FieldTests(TestCase):

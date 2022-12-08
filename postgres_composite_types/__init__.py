@@ -257,7 +257,8 @@ class CompositeTypeMeta(type):
         for field_name, value in attrs.copy().items():
             if isinstance(value, models.fields.related.RelatedField):
                 raise TypeError("Composite types cannot contain " "related fields")
-            elif isinstance(value, models.Field):
+
+            if isinstance(value, models.Field):
                 field = attrs.pop(field_name)
                 field.set_attributes_from_name(field_name)
                 fields.append((field_name, field))

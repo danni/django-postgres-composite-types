@@ -130,12 +130,11 @@ class CompositeTypeField(forms.Field):
         if all(
             value.get(name) in field.empty_values for name, field in self.fields.items()
         ):
+            value = None
             if self.required:
                 raise forms.ValidationError(
                     "This section is required", code="incomplete"
                 )
-            else:
-                value = None
 
         else:
             cleaned_data = {}
