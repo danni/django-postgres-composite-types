@@ -36,15 +36,13 @@ import copy
 import logging
 from collections import OrderedDict
 
-from django import VERSION, forms
+from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import gettext as _
 
 from . import CompositeType
 
 LOGGER = logging.getLogger(__name__)
-
-DJANGO21 = VERSION >= (2, 1)
 
 
 class CompositeBoundField(forms.BoundField):
@@ -147,10 +145,7 @@ class CompositeTypeField(forms.Field):
                 try:
                     cleaned_data[name] = field.clean(value.get(name))
                 except forms.ValidationError as error:
-                    if DJANGO21:
-                        prefix = "%(label)s:"
-                    else:
-                        prefix = "%(label)s: "
+                    prefix = "%(label)s:"
                     errors.append(
                         prefix_validation_error(
                             error,
