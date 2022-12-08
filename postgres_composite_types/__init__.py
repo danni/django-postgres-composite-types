@@ -157,11 +157,12 @@ class BaseField(models.Field):
         if isinstance(value, str):
             try:
                 value = json.loads(value)
-            except ValueError:
+            except ValueError as exc:
                 raise ValidationError(
                     self.error_messages["bad_json"],
                     code="bad_json",
-                )
+                ) from exc
+
             return self.Meta.model(
                 **{
                     name: field.to_python(value.get(name))
@@ -264,13 +265,13 @@ class CompositeTypeMeta(type):
         # retrieve the Meta from our declaration
         try:
             meta_obj = attrs.pop("Meta")
-        except KeyError:
-            raise TypeError(f'{name} has no "Meta" class')
+        except KeyError as exc:
+            raise TypeError(f'{name} has no "Meta" class') from exc
 
         try:
             meta_obj.db_type
-        except AttributeError:
-            raise TypeError(f"{name}.Meta.db_type is required.")
+        except AttributeError as exc:
+            raise TypeError(f"{name}.Meta.db_type is required.") from exc
 
         meta_obj.fields = fields
 
@@ -318,7 +319,7 @@ class CompositeTypeMeta(type):
         on that.
         """
 
-        attrs = {field_name: field for field_name, field in cls._meta.fields}
+        attrs = dict(cls._meta.fields)
 
         # we need to build a unique app label and model name combination for
         # every composite type so django doesn't complain about model reloads
