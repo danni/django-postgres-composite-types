@@ -96,8 +96,6 @@ class BaseField(models.Field):
     }
 
     def db_type(self, connection):
-        LOGGER.debug("db_type")
-
         if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available " "for postgres")
 
