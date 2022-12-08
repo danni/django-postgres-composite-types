@@ -126,8 +126,7 @@ class CompositeTypeMeta(type):
 
         fake_model = type(model_name, (models.Model,), attrs)
         for field_name, _ in cls._meta.fields:
-            # default None is for django 1.9
-            attr = getattr(fake_model, field_name, None)
+            attr = getattr(fake_model, field_name)
             if inspect.isdatadescriptor(attr):
                 setattr(cls, field_name, attr)
 
