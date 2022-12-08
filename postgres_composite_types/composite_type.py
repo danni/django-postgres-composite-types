@@ -142,11 +142,13 @@ class CompositeTypeMeta(type):
             # will run soon.
             try:
                 cls.register_composite(connection)
-            except ProgrammingError:
+            except ProgrammingError as exc:
                 LOGGER.warning(
-                    "Failed to register composite %s. "
-                    "The migration to register it may not have run yet.",
+                    "Failed to register composite %r. "
+                    "The migration to register it may not have run yet. "
+                    "Error details: %s",
                     cls.__name__,
+                    exc,
                 )
 
         # Disconnect the signal now - only need to register types on the
