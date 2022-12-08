@@ -1,6 +1,5 @@
 [MASTER]
 load-plugins=pylint_django
-ignore=migrations
 
 [REPORTS]
 output-format=colorized

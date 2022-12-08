@@ -364,9 +364,7 @@ class CompositeTypeMeta(type):
         )
 
 
-# pylint:disable=invalid-name
 composite_type_created = Signal()
-# pylint:enable=invalid-name
 
 
 class CompositeType(metaclass=CompositeTypeMeta):

@@ -13,7 +13,6 @@ class SimpleType(CompositeType):
     class Meta:
         db_type = "test_type"
 
-    # pylint:disable=invalid-name
     a = models.IntegerField(verbose_name="A number")
     b = models.CharField(verbose_name="A name", max_length=32)
     c = models.DateTimeField(verbose_name="A date")
@@ -22,7 +21,6 @@ class SimpleType(CompositeType):
 class SimpleModel(models.Model):
     """A test model."""
 
-    # pylint:disable=invalid-name
     test_field = SimpleType.Field()
 
 
@@ -64,7 +62,6 @@ class Point(CompositeType):
     class Meta:
         db_type = "test_point"  # Postgres already has a point type
 
-    # pylint:disable=invalid-name
     x = models.IntegerField()
     y = models.IntegerField()
 
@@ -81,13 +78,11 @@ class Box(CompositeType):
     @property
     def bottom_left(self):
         """The bottom-left corner of the box."""
-        # pylint:disable=no-member
         return Point(x=self.top_left.x, y=self.bottom_right.y)
 
     @property
     def top_right(self):
         """The top-right corner of the box."""
-        # pylint:disable=no-member
         return Point(x=self.bottom_right.x, y=self.top_left.y)
 
 

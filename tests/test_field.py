@@ -116,7 +116,6 @@ class FieldTests(TestCase):
 
     def test_field_save_and_load(self):
         """Save and load a test model."""
-        # pylint:disable=invalid-name
         t = SimpleType(a=1, b="β ☃", c=datetime.datetime(1985, 10, 26, 9, 0))
         m = SimpleModel(test_field=t)
         m.save()

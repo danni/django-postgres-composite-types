@@ -54,4 +54,4 @@ repos:
         entry: env DJANGO_SETTINGS_MODULE="tests.settings" pylint
         language: system
         types: [python]
-        args: ["--load-plugins=pylint_django", "postgres_composite_types", "tests"]
+        args: ["--ignore-paths=tests/"]

@@ -145,7 +145,6 @@ class TestField(SimpleTestCase):
             )
         )
 
-    # pylint:disable=invalid-name
     def assertHTMLContains(self, text, content, count=None, msg=None):
         """
         Assert that the HTML snippet ``text`` is found within the HTML snippet

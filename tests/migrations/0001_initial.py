@@ -1,4 +1,3 @@
-# pylint:disable=invalid-name
 """
 Migration to create custom types
 """
