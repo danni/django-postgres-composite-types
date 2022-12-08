@@ -1,11 +1,9 @@
-Django Postgres composite types
-===============================
+# Django Postgres composite types
 
 An implementation of Postgres' [composite types](http://www.postgresql.org/docs/current/static/rowtypes.html)
 for [Django](https://docs.djangoproject.com/en/1.9/).
 
-Usage
------
+## Usage
 
 Install with:
 
@@ -66,8 +64,7 @@ class Migration(migrations.Migration):
     ]
 ```
 
-Examples
---------
+## Examples
 
 Array fields:
 
@@ -93,7 +90,6 @@ Nested types:
 class Point(CompositeType):
     """A point on the cartesian plane."""
 
-    # pylint:disable=invalid-name
     x = models.IntegerField()
     y = models.IntegerField()
 
@@ -110,10 +106,9 @@ class Box(CompositeType):
     bottom_right = Point.Field()
 ```
 
-Gotchas and Caveats
--------------------
+## Gotchas and Caveats
 
-The migration operation currently loads the *current* state of the type, not
+The migration operation currently loads the _current_ state of the type, not
 the state when the migration was written. A generic `CreateType` operation
 which takes the fields of the type would be possible, but it would still
 require manual handling still as Django's `makemigrations` is not currently
@@ -144,8 +139,8 @@ Lookups and indexes are not implemented yet
 ([bug #9](https://github.com/danni/django-postgres-composite-types/issues/9),
 [bug #10](https://github.com/danni/django-postgres-composite-types/issues/10)).
 
-Running Tests
--------------------
+## Running Tests
+
 Clone the repository, go to it's base directory and run the following commands.
 
     pip install tox
@@ -155,16 +150,14 @@ Or if you want a specific environment
 
     tox -e py35-dj2.0
 
-Authors
--------
+## Authors
 
-* Danielle Madeley <danielle@madeley.id.au>
-* Tim Heap <hello@timheap.me>
+-   Danielle Madeley <danielle@madeley.id.au>
+-   Tim Heap <hello@timheap.me>
 
-License
--------
+## License
 
-(c) 2016, Danielle Madeley  <danielle@madeley.id.au>
+(c) 2016, Danielle Madeley <danielle@madeley.id.au>
 
 All rights reserved.
 

@@ -14,8 +14,16 @@ from psycopg2.extensions import adapt
 from postgres_composite_types import composite_type_created
 
 from .models import (
-    Box, DateRange, Item, NamedDateRange, OptionalBits, OptionalModel, Point,
-    SimpleModel, SimpleType)
+    Box,
+    DateRange,
+    Item,
+    NamedDateRange,
+    OptionalBits,
+    OptionalModel,
+    Point,
+    SimpleModel,
+    SimpleType,
+)
 
 
 class TestMigrations(TransactionTestCase):
@@ -26,15 +34,15 @@ class TestMigrations(TransactionTestCase):
     FIXME: the ordering of the tests is totally broken.
     """
 
-    app = 'tests'
-    migrate_from = [('tests', None)]  # Before the first migration
-    migrate_to = [('tests', '0001_initial')]
+    app = "tests"
+    migrate_from = [("tests", None)]  # Before the first migration
+    migrate_to = [("tests", "0001_initial")]
 
     def does_type_exist(self, type_name):
         """
         Check if a composite type exists in the database
         """
-        sql = 'select exists (select 1 from pg_type where typname = %s);'
+        sql = "select exists (select 1 from pg_type where typname = %s);"
         with connection.cursor() as cursor:
             cursor.execute(sql, [type_name])
             row = cursor.fetchone()
@@ -77,10 +85,17 @@ class TestMigrations(TransactionTestCase):
 
         # The signal should have been sent
         self.assertEqual(signal_func.call_count, 1)
-        self.assertEqual(signal_func.call_args, ((), {
-            'sender': SimpleType,
-            'signal': composite_type_created,
-            'connection': connection}))
+        self.assertEqual(
+            signal_func.call_args,
+            (
+                (),
+                {
+                    "sender": SimpleType,
+                    "signal": composite_type_created,
+                    "connection": connection,
+                },
+            ),
+        )
 
         # The type should now exist again
         self.assertTrue(self.does_type_exist(SimpleType._meta.db_type))
@@ -113,16 +128,14 @@ class FieldTests(TestCase):
         self.assertEqual(m.test_field.c, datetime.datetime(1985, 10, 26, 9, 0))
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).a FROM %s" % (
-            SimpleModel._meta.db_table,))
-        result, = cursor.fetchone()
+        cursor.execute("SELECT (test_field).a FROM %s" % (SimpleModel._meta.db_table,))
+        (result,) = cursor.fetchone()
 
         self.assertEqual(result, 1)
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).b FROM %s" % (
-            SimpleModel._meta.db_table,))
-        result, = cursor.fetchone()
+        cursor.execute("SELECT (test_field).b FROM %s" % (SimpleModel._meta.db_table,))
+        (result,) = cursor.fetchone()
 
         self.assertEqual(result, "β ☃")
 
@@ -131,7 +144,7 @@ class FieldTests(TestCase):
         start = datetime.datetime.now()
         end = datetime.datetime.now() + datetime.timedelta(days=1)
         date_range = DateRange(start=start, end=end)
-        model = NamedDateRange(name='foobar', date_range=date_range)
+        model = NamedDateRange(name="foobar", date_range=date_range)
         model.save()
 
         model = NamedDateRange.objects.get()
@@ -149,7 +162,8 @@ class FieldTests(TestCase):
 
         self.assertEqual(
             b"(1, 'b', '1985-10-26T09:00:00'::timestamp)::test_type",
-            adapted.getquoted())
+            adapted.getquoted(),
+        )
 
     def test_serialize(self):
         """
@@ -158,13 +172,12 @@ class FieldTests(TestCase):
         """
         old = Item(
             name="table",
-            bounding_box=Box(top_left=Point(x=1, y=1),
-                             bottom_right=Point(x=4, y=2)))
+            bounding_box=Box(top_left=Point(x=1, y=1), bottom_right=Point(x=4, y=2)),
+        )
         out = serializers.serialize("json", [old])
         new = next(serializers.deserialize("json", out)).object
 
-        self.assertEqual(old.bounding_box,
-                         new.bounding_box)
+        self.assertEqual(old.bounding_box, new.bounding_box)
 
     def test_to_python(self):
         """
@@ -173,11 +186,15 @@ class FieldTests(TestCase):
         start = datetime.datetime.now()
         end = datetime.datetime.now() + datetime.timedelta(days=1)
 
-        field = NamedDateRange._meta.get_field('date_range')
-        out = field.to_python(json.dumps({
-            "start": start.isoformat(),
-            "end": end.isoformat(),
-        }))
+        field = NamedDateRange._meta.get_field("date_range")
+        out = field.to_python(
+            json.dumps(
+                {
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                }
+            )
+        )
 
         self.assertEqual(out, DateRange(start=start, end=end))
 
@@ -186,13 +203,13 @@ class FieldTests(TestCase):
         Test the Field.to_python() handles bad JSON data by raising
         a ValidationError
         """
-        field = NamedDateRange._meta.get_field('date_range')
+        field = NamedDateRange._meta.get_field("date_range")
 
         with self.assertRaises(ValidationError) as context:
             field.to_python("bogus JSON")
 
         exception = context.exception
-        self.assertEqual(exception.code, 'bad_json')
+        self.assertEqual(exception.code, "bad_json")
 
 
 class TestOptionalFields(TestCase):
@@ -210,25 +227,29 @@ class TestOptionalFields(TestCase):
 
     def test_null_subfield_save_and_load(self):
         """Save and load a null composite field"""
-        model = OptionalModel(optional_field=OptionalBits(
-            required='foo', optional=None))
+        model = OptionalModel(
+            optional_field=OptionalBits(required="foo", optional=None)
+        )
         model.save()
 
         model = OptionalModel.objects.get()
         self.assertIsNotNone(model.optional_field)
-        self.assertEqual(model.optional_field, OptionalBits(
-            required='foo', optional=None))
+        self.assertEqual(
+            model.optional_field, OptionalBits(required="foo", optional=None)
+        )
 
     def test_all_filled(self):
         """
         Save and load an optional composite field with all its optional fields
         filled in
         """
-        model = OptionalModel(optional_field=OptionalBits(
-            required='foo', optional='bar'))
+        model = OptionalModel(
+            optional_field=OptionalBits(required="foo", optional="bar")
+        )
         model.save()
 
         model = OptionalModel.objects.get(id=1)
         self.assertIsNotNone(model.optional_field)
-        self.assertEqual(model.optional_field, OptionalBits(
-            required='foo', optional='bar'))
+        self.assertEqual(
+            model.optional_field, OptionalBits(required="foo", optional="bar")
+        )

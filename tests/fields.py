@@ -7,6 +7,7 @@ from django.db import models
 
 class TripleOnAssignDescriptor:
     """A descriptor that multiplies the assigned value by 3."""
+
     def __init__(self, field):
         self.field = field
 
@@ -24,6 +25,7 @@ class TripleOnAssignDescriptor:
 
 class TriplingIntegerField(models.IntegerField):
     """Field that triples assigned value."""
+
     # pylint:disable=arguments-differ
     def contribute_to_class(self, cls, name, **kwargs):
         super().contribute_to_class(cls, name, **kwargs)

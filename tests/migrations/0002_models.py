@@ -11,52 +11,108 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('tests', '0001_initial'),
+        ("tests", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DescriptorModel',
+            name="DescriptorModel",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('field', tests.models.DescriptorTypeField()),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("field", tests.models.DescriptorTypeField()),
             ],
         ),
         migrations.CreateModel(
-            name='Hand',
+            name="Hand",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cards', django.contrib.postgres.fields.ArrayField(base_field=tests.models.CardField(), size=None)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "cards",
+                    django.contrib.postgres.fields.ArrayField(
+                        base_field=tests.models.CardField(), size=None
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Item',
+            name="Item",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=20)),
-                ('bounding_box', tests.models.BoxField()),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=20)),
+                ("bounding_box", tests.models.BoxField()),
             ],
         ),
         migrations.CreateModel(
-            name='NamedDateRange',
+            name="NamedDateRange",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.TextField()),
-                ('date_range', tests.models.DateRangeField()),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.TextField()),
+                ("date_range", tests.models.DateRangeField()),
             ],
         ),
         migrations.CreateModel(
-            name='OptionalModel',
+            name="OptionalModel",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('optional_field', tests.models.OptionalBitsField(blank=True, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "optional_field",
+                    tests.models.OptionalBitsField(blank=True, null=True),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='SimpleModel',
+            name="SimpleModel",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('test_field', tests.models.SimpleTypeField()),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("test_field", tests.models.SimpleTypeField()),
             ],
         ),
     ]
