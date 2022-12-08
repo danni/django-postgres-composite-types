@@ -27,3 +27,27 @@ pytest-django = "^4.5.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint.MASTER]
+load-plugins = "pylint_django"
+
+[tool.pylint.REPORTS]
+output-format = "colorized"
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+    "import-outside-toplevel",
+    "too-few-public-methods",
+    "unused-argument",
+    "R0801",
+]
+
+[tool.pylint.BASIC]
+function-rgx = "[a-z_][a-z0-9_]{2,50}$|test_[a-zA-Z_][a-zA-Z0-9_]{2,100}$|setUp$|tearDown$"
+method-rgx = "[a-z_][a-z0-9_]{2,30}$|test_[a-zA-Z_][a-zA-Z0-9_]{2,100}$"
+attr-rgx = "[a-z_][a-z0-9_]{2,30}$|maxDiff$"
+exclude-protected = "_asdict,_fields,_replace,_source,_make,_meta"
+no-docstring-rgx = "^Meta$|^_"

@@ -2,6 +2,3 @@
 exclude = .git,__pycache__,migrations
 max-complexity = 10
 max-line-length = 88
-
-[isort]
-profile=black
