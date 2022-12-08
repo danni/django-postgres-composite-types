@@ -10,7 +10,6 @@ import inspect
 import json
 import logging
 import sys
-from collections import OrderedDict
 
 from django.core.exceptions import ValidationError
 from django.db import migrations, models
@@ -217,7 +216,7 @@ class CompositeTypeMeta(type):
         We need this so that our type doesn't change ordering between
         invocations.
         """
-        return OrderedDict()
+        return {}
 
     def __new__(cls, name, bases, attrs):
         # Only apply the metaclass to our subclasses
@@ -375,10 +374,10 @@ class CompositeType(metaclass=CompositeTypeMeta):
         )
 
     def __to_dict__(self):
-        return OrderedDict(
-            (name, field.get_prep_value(getattr(self, name)))
+        return {
+            name: field.get_prep_value(getattr(self, name))
             for name, field in self._meta.fields
-        )
+        }
 
     def __eq__(self, other):
         if not isinstance(other, CompositeType):

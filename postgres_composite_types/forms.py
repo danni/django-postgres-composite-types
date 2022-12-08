@@ -6,7 +6,6 @@ Takes inspiration from django.forms.MultiValueField/MultiWidget.
 
 import copy
 import logging
-from collections import OrderedDict
 
 from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
@@ -63,11 +62,9 @@ class CompositeTypeField(forms.Field):
 
     def __init__(self, *args, fields=None, model=None, **kwargs):
         if fields is None:
-            fields = OrderedDict(
-                [(name, field.formfield()) for name, field in model._meta.fields]
-            )
+            fields = {name: field.formfield() for name, field in model._meta.fields}
         else:
-            fields = OrderedDict(fields)
+            fields = dict(fields)
 
         widget = CompositeTypeWidget(
             widgets=[(name, field.widget) for name, field in fields.items()]
@@ -154,10 +151,10 @@ class CompositeTypeWidget(forms.Widget):
     template_name = "postgres_composite_types/forms/widgets/composite_type.html"
 
     def __init__(self, widgets, **kwargs):
-        self.widgets = OrderedDict(
-            (name, widget() if isinstance(widget, type) else widget)
-            for name, widget in OrderedDict(widgets).items()
-        )
+        self.widgets = {
+            name: widget() if isinstance(widget, type) else widget
+            for name, widget in dict(widgets).items()
+        }
 
         super().__init__(**kwargs)
 
