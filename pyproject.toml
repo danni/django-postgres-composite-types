@@ -41,6 +41,7 @@ output-format = "colorized"
 disable = [
     "import-outside-toplevel",
     "missing-function-docstring",
+    "missing-module-docstring",
     "too-few-public-methods",
     "unused-argument",
     "R0801",

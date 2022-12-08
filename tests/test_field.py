@@ -11,7 +11,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from psycopg2.extensions import adapt
 
-from postgres_composite_types import composite_type_created
+from postgres_composite_types.signals import composite_type_created
 
 from .models import (
     Box,
