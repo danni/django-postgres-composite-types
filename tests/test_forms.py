@@ -166,7 +166,7 @@ class TestField(SimpleTestCase):
             self.assertEqual(
                 matches,
                 count,
-                msg=msg or "Found %d matches, expecting %d" % (matches, count),
+                msg=msg or f"Found {matches} matches, expecting {count}",
             )
 
 

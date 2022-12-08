@@ -106,9 +106,9 @@ class QuotedCompositeType:
         Returns something like ``b"(value1, value2)::type_name"``
         """
         if not self.prepared:
+            name = type(self).__name__
             raise RuntimeError(
-                "{name}.prepare() must be called before "
-                "{name}.getquoted()".format(name=type(self).__name__)
+                f"{name}.prepare() must be called before {name}.getquoted()"
             )
 
         db_type = self.model._meta.db_type.encode("ascii")
@@ -192,35 +192,27 @@ class BaseOperation(migrations.operations.base.Operation):
         pass
 
     def describe(self):
-        return "Creates type %s" % self.Meta.db_type
+        return f"Creates type {self.Meta.db_type}"
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
 
-        fields = [
-            "%s %s"
-            % (schema_editor.quote_name(name), field.db_type(schema_editor.connection))
+        connection = schema_editor.connection
+        fields = ", ".join(
+            f"{schema_editor.quote_name(name)} {field.db_type(connection)}"
             for name, field in self.Meta.fields
-        ]
-
-        schema_editor.execute(
-            " ".join(
-                (
-                    "CREATE TYPE",
-                    schema_editor.quote_name(self.Meta.db_type),
-                    "AS (%s)" % ", ".join(fields),
-                )
-            )
         )
 
-        self.Meta.model.register_composite(schema_editor.connection)
+        type_name = schema_editor.quote_name(self.Meta.db_type)
 
-        composite_type_created.send(
-            self.Meta.model, connection=schema_editor.connection
-        )
+        schema_editor.execute(f"CREATE TYPE {type_name} AS ({fields})")
+
+        self.Meta.model.register_composite(connection)
+
+        composite_type_created.send(self.Meta.model, connection=connection)
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         type_name = schema_editor.quote_name(self.Meta.db_type)
-        schema_editor.execute("DROP TYPE %s" % type_name)
+        schema_editor.execute(f"DROP TYPE {type_name}")
 
 
 class BaseCaster(CompositeCaster):
@@ -273,17 +265,17 @@ class CompositeTypeMeta(type):
         try:
             meta_obj = attrs.pop("Meta")
         except KeyError:
-            raise TypeError('%s has no "Meta" class' % (name,))
+            raise TypeError(f'{name} has no "Meta" class')
 
         try:
             meta_obj.db_type
         except AttributeError:
-            raise TypeError("%s.Meta.db_type is required." % (name,))
+            raise TypeError(f"{name}.Meta.db_type is required.")
 
         meta_obj.fields = fields
 
         # create the field for this Type
-        attrs["Field"] = type("%sField" % name, (BaseField,), {"Meta": meta_obj})
+        attrs["Field"] = type(f"{name}Field", (BaseField,), {"Meta": meta_obj})
 
         # add field class to the module in which the composite type class lives
         # this is required for migrations to work
@@ -291,11 +283,11 @@ class CompositeTypeMeta(type):
 
         # create the database operation for this type
         attrs["Operation"] = type(
-            "Create%sType" % name, (BaseOperation,), {"Meta": meta_obj}
+            f"Create{name}Type", (BaseOperation,), {"Meta": meta_obj}
         )
 
         # create the caster for this type
-        attrs["Caster"] = type("%sCaster" % name, (BaseCaster,), {"Meta": meta_obj})
+        attrs["Caster"] = type(f"{name}Caster", (BaseCaster,), {"Meta": meta_obj})
 
         new_cls = super().__new__(cls, name, bases, attrs)
         new_cls._meta = meta_obj
@@ -335,7 +327,7 @@ class CompositeTypeMeta(type):
 
         attrs["__module__"] = cls.__module__
         attrs["Meta"] = Meta
-        model_name = "_Fake{}Model".format(cls.__name__)
+        model_name = f"_Fake{cls.__name__}Model"
 
         fake_model = type(model_name, (models.Model,), attrs)
         for field_name, _ in cls._meta.fields:
@@ -358,8 +350,8 @@ class CompositeTypeMeta(type):
                 cls.register_composite(connection)
             except ProgrammingError:
                 LOGGER.warning(
-                    "Failed to register composite %s. This might be because "
-                    "the migration to register it has not run yet",
+                    "Failed to register composite %s. "
+                    "The migration to register it may not have run yet.",
                     cls.__name__,
                 )
 
@@ -401,10 +393,8 @@ class CompositeType(metaclass=CompositeTypeMeta):
             setattr(self, name, value)
 
     def __repr__(self):
-        return "<%s(%s)>" % (
-            type(self).__name__,
-            ", ".join("%s=%s" % item for item in self.__to_dict__().items()),
-        )
+        args = ", ".join(f"{k}={v}" for k, v in self.__to_dict__().items())
+        return f"<{type(self).__name__}({args})>"
 
     def __to_tuple__(self):
         return tuple(

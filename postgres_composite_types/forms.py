@@ -212,10 +212,10 @@ class CompositeTypeWidget(forms.Widget):
         for subname, widget in self.widgets.items():
             widget_attrs = final_attrs.copy()
             if id_:
-                widget_attrs["id"] = "%s-%s" % (id_, subname)
+                widget_attrs["id"] = f"{id_}-{subname}"
 
             widget_context = widget.get_context(
-                "%s-%s" % (name, subname), value.get(subname), widget_attrs
+                f"{name}-{subname}", value.get(subname), widget_attrs
             )
             subwidgets[subname] = widget_context["widget"]
 
@@ -224,12 +224,12 @@ class CompositeTypeWidget(forms.Widget):
 
     def value_from_datadict(self, data, files, name):
         return {
-            subname: widget.value_from_datadict(data, files, "%s-%s" % (name, subname))
+            subname: widget.value_from_datadict(data, files, f"{name}-{subname}")
             for subname, widget in self.widgets.items()
         }
 
     def value_omitted_from_data(self, data, files, name):
-        prefix = "{}-".format(name)
+        prefix = f"{name}-"
         return not any(key.startswith(prefix) for key in data)
 
     def id_for_label(self, id_):
@@ -240,6 +240,6 @@ class CompositeTypeWidget(forms.Widget):
         """
         if id_:
             name = next(iter(self.widgets.keys()))
-            return "%s-%s" % (id_, name)
+            return f"{id_}-{name}"
 
         return id_

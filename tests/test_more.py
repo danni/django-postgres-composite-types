@@ -70,7 +70,7 @@ class TestArrayFields(TestCase):
         composite_field_cls = field.base_field.__class__.__name__
         expected_path = ".".join((models_module, composite_field_cls))
         # check that the expected path is the one used by deconstruct
-        expected_deconstruction = "base_field={}()".format(expected_path)
+        expected_deconstruction = f"base_field={expected_path}()"
         self.assertIn(expected_deconstruction, text)
 
 

@@ -128,13 +128,13 @@ class FieldTests(TestCase):
         self.assertEqual(m.test_field.c, datetime.datetime(1985, 10, 26, 9, 0))
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).a FROM %s" % (SimpleModel._meta.db_table,))
+        cursor.execute(f"SELECT (test_field).a FROM {SimpleModel._meta.db_table}")
         (result,) = cursor.fetchone()
 
         self.assertEqual(result, 1)
 
         cursor = connection.connection.cursor()
-        cursor.execute("SELECT (test_field).b FROM %s" % (SimpleModel._meta.db_table,))
+        cursor.execute(f"SELECT (test_field).b FROM {SimpleModel._meta.db_table}")
         (result,) = cursor.fetchone()
 
         self.assertEqual(result, "β ☃")
