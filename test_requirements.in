@@ -1,9 +1,0 @@
-nose
--egit+https://github.com/django-nose/django-nose.git@master#egg=django-nose
-
-flake8
-pylint
-pylint_django
-isort
-
-setuptools_scm
