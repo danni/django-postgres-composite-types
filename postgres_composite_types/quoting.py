@@ -1,3 +1,4 @@
+from psycopg2.errors import ProgrammingError
 from psycopg2.extensions import ISQLQuote, adapt
 
 __all__ = ["QuotedCompositeType"]
@@ -19,9 +20,10 @@ class QuotedCompositeType:
         self.value = adapt(
             tuple(
                 field.get_db_prep_value(
-                    field.value_from_object(self.obj), self.model.registered_connection
+                    field.value_from_object(self.obj),
+                    self.model.registered_connection,
                 )
-                for _, field in self.model._meta.fields
+                for field in self.model._meta.fields
             )
         )
 

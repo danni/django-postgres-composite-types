@@ -1,12 +1,12 @@
 import inspect
 import logging
-import sys
 
 from django.db import models
 from django.db.backends.postgresql.base import (
     DatabaseWrapper as PostgresDatabaseWrapper,
 )
 from django.db.backends.signals import connection_created
+from django.db.models.base import ModelBase
 from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
@@ -21,13 +21,7 @@ LOGGER = logging.getLogger(__name__)
 __all__ = ["CompositeType"]
 
 
-def _add_class_to_module(cls, module_name):
-    cls.__module__ = module_name
-    module = sys.modules[module_name]
-    setattr(module, cls.__name__, cls)
-
-
-class CompositeTypeMeta(type):
+class CompositeTypeMeta(ModelBase):
     """Metaclass for Type."""
 
     @classmethod
@@ -52,13 +46,13 @@ class CompositeTypeMeta(type):
                 raise TypeError("Composite types cannot contain " "related fields")
 
             if isinstance(value, models.Field):
-                field = attrs.pop(field_name)
+                field = attrs[field_name]
                 field.set_attributes_from_name(field_name)
                 fields.append((field_name, field))
 
         # retrieve the Meta from our declaration
         try:
-            meta_obj = attrs.pop("Meta")
+            meta_obj = attrs["Meta"]
         except KeyError as exc:
             raise TypeError(f'{name} has no "Meta" class') from exc
 
@@ -67,68 +61,20 @@ class CompositeTypeMeta(type):
         except AttributeError as exc:
             raise TypeError(f"{name}.Meta.db_table is required.") from exc
 
-        meta_obj.fields = fields
-
         # create the field for this Type
         attrs["Field"] = type(f"{name}.Field", (BaseField,), {"Meta": meta_obj})
 
-        # add field class to the module in which the composite type class lives
-        # this is required for migrations to work
-        _add_class_to_module(attrs["Field"], attrs["__module__"])
-
-        # create the database operation for this type
-        attrs["Operation"] = type(
-            f"Create{name}Type", (BaseOperation,), {"Meta": meta_obj}
-        )
-
-        # create the caster for this type
-        attrs["Caster"] = type(f"{name}Caster", (BaseCaster,), {"Meta": meta_obj})
-
-        new_cls = super().__new__(cls, name, bases, attrs)
-        new_cls._meta = meta_obj
-
-        meta_obj.model = new_cls
-
-        return new_cls
+        return super().__new__(cls, name, bases, attrs)
 
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)
         if name == "CompositeType":
             return
 
-        cls._capture_descriptors()  # pylint:disable=no-value-for-parameter
-
         # Register the type on the first database connection
         connection_created.connect(
             receiver=cls.database_connected, dispatch_uid=cls._meta.db_table
         )
-
-    def _capture_descriptors(cls):
-        """Work around for not being able to call contribute_to_class.
-
-        Too much code to fake in our meta objects etc to be able to call
-        contribute_to_class directly, but we still want fields to be able
-        to set custom type descriptors. So we fake a model instead, with the
-        same fields as the composite type, and extract any custom descriptors
-        on that.
-        """
-
-        attrs = dict(cls._meta.fields)
-
-        # we need to build a unique app label and model name combination for
-        # every composite type so django doesn't complain about model reloads
-        class Meta:
-            app_label = cls.__module__
-
-        attrs["__module__"] = cls.__module__
-        attrs["Meta"] = Meta
-        model_name = f"_Fake{cls.__name__}Model"
-
-        fake_model = type(model_name, (models.Model,), attrs)
-        for field_name, _ in cls._meta.fields:
-            attr = getattr(fake_model, field_name)
-            if inspect.isdatadescriptor(attr):
-                setattr(cls, field_name, attr)
 
     def database_connected(cls, signal, sender, connection, **kwargs):
         """
@@ -163,8 +109,6 @@ class CompositeType(metaclass=CompositeTypeMeta):
     A new composite type stored in Postgres.
     """
 
-    _meta = None
-
     # The database connection this type is registered with
     registered_connection = None
 
@@ -172,13 +116,12 @@ class CompositeType(metaclass=CompositeTypeMeta):
         if args and kwargs:
             raise RuntimeError("Specify either args or kwargs but not both.")
 
-        # Initialise blank values for anyone expecting them
-        for name, _ in self._meta.fields:
-            setattr(self, name, None)
+        for field in self._meta.fields:
+            setattr(self, field.name, None)
 
         # Unpack any args as if they came from the type
-        for (name, _), arg in zip(self._meta.fields, args):
-            setattr(self, name, arg)
+        for field, arg in zip(self._meta.fields, args):
+            setattr(self, field.name, arg)
 
         for name, value in kwargs.items():
             setattr(self, name, value)
@@ -189,14 +132,14 @@ class CompositeType(metaclass=CompositeTypeMeta):
 
     def __to_tuple__(self):
         return tuple(
-            field.get_prep_value(getattr(self, name))
-            for name, field in self._meta.fields
+            field.get_prep_value(getattr(self, field.name))
+            for field in self._meta.fields
         )
 
     def __to_dict__(self):
         return {
-            name: field.get_prep_value(getattr(self, name))
-            for name, field in self._meta.fields
+            field.name: field.get_prep_value(getattr(self, field.name))
+            for field in self._meta.fields
         }
 
     def __eq__(self, other):
@@ -204,8 +147,8 @@ class CompositeType(metaclass=CompositeTypeMeta):
             return False
         if self._meta.model != other._meta.model:
             return False
-        for name, _ in self._meta.fields:
-            if getattr(self, name) != getattr(other, name):
+        for field in self._meta.fields:
+            if getattr(self, field.name) != getattr(other, field.name):
                 return False
         return True
 
@@ -260,3 +203,10 @@ class CompositeType(metaclass=CompositeTypeMeta):
         """
         Placeholder for the caster that will be produced for this type
         """
+
+    def _get_next_or_previous_by_FIELD(self):
+        pass
+
+    @classmethod
+    def check(cls, **kwargs):
+        return []

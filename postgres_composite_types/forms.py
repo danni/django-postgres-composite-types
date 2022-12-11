@@ -61,10 +61,9 @@ class CompositeTypeField(forms.Field):
     }
 
     def __init__(self, *args, fields=None, model=None, **kwargs):
-        if fields is None:
-            fields = {name: field.formfield() for name, field in model._meta.fields}
-        else:
-            fields = dict(fields)
+        fields = {
+            field.name: field.formfield() for field in fields or model._meta.fields
+        }
 
         widget = CompositeTypeWidget(
             widgets=[
