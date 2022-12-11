@@ -67,7 +67,9 @@ class CompositeTypeField(forms.Field):
             fields = dict(fields)
 
         widget = CompositeTypeWidget(
-            widgets=[(name, field.widget) for name, field in fields.items()]
+            widgets=[
+                (name, getattr(field, "widget", None)) for name, field in fields.items()
+            ]
         )
 
         super().__init__(*args, widget=widget, **kwargs)
@@ -75,7 +77,8 @@ class CompositeTypeField(forms.Field):
         self.model = model
 
         for field, widget in zip(fields.values(), self.widget.widgets.values()):
-            widget.attrs["placeholder"] = field.label
+            if widget:
+                widget.attrs["placeholder"] = getattr(field, "label", "")
 
     def prepare_value(self, value):
         """
