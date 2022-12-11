@@ -70,7 +70,7 @@ class CompositeTypeMeta(type):
         meta_obj.fields = fields
 
         # create the field for this Type
-        attrs["Field"] = type(f"{name}Field", (BaseField,), {"Meta": meta_obj})
+        attrs["Field"] = type(f"{name}.Field", (BaseField,), {"Meta": meta_obj})
 
         # add field class to the module in which the composite type class lives
         # this is required for migrations to work
