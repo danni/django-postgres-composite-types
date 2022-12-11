@@ -9,6 +9,14 @@ from django.db.models import Field
 __all__ = ["BaseField"]
 
 
+class DummyField(Field):
+    """
+    A dummy field added on every CompositeType, that behaves as the
+    type's primary key. This is a hack due to Django's requirement for
+    all models to have a primary key.
+    """
+
+
 class BaseField(Field):
     """Base class for the field that relates to this type."""
 

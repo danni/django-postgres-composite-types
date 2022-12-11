@@ -1,4 +1,3 @@
-from psycopg2.errors import ProgrammingError
 from psycopg2.extensions import ISQLQuote, adapt
 
 __all__ = ["QuotedCompositeType"]
@@ -24,6 +23,7 @@ class QuotedCompositeType:
                     self.model.registered_connection,
                 )
                 for field in self.model._meta.fields
+                if field.name != "pk"
             )
         )
 

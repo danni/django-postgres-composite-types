@@ -10,7 +10,7 @@ from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
 
-from .fields import BaseField
+from .fields import BaseField, DummyField
 from .quoting import QuotedCompositeType
 
 LOGGER = logging.getLogger(__name__)
@@ -60,6 +60,9 @@ class CompositeTypeMeta(ModelBase):
 
         # create the field for this Type
         attrs["Field"] = type(f"{name}.Field", (BaseField,), {"Meta": meta_obj})
+
+        attrs["__id"] = DummyField(primary_key=True, serialize=False)
+        attrs["__id"].name = "pk"
 
         return super().__new__(cls, name, bases, attrs)
 
