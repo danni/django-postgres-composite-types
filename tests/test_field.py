@@ -2,7 +2,6 @@
 
 import datetime
 import json
-from unittest import mock
 
 from django.core import serializers
 from django.core.exceptions import ValidationError
@@ -10,8 +9,6 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from psycopg2.extensions import adapt
-
-from postgres_composite_types.signals import composite_type_created
 
 from .models import (
     Box,
@@ -78,27 +75,9 @@ class TestMigrations(TransactionTestCase):
         # The type should now not exist
         self.assertFalse(does_type_exist(SimpleType._meta.db_table))
 
-        # A signal is fired when the migration creates the type
-        signal_func = mock.Mock()
-        composite_type_created.connect(receiver=signal_func, sender=SimpleType)
-
         # Run the migration forwards to create the type again
         migrate(self.migrate_to)
         self.assertTrue(does_type_exist(SimpleType._meta.db_table))
-
-        # The signal should have been sent
-        self.assertEqual(signal_func.call_count, 1)
-        self.assertEqual(
-            signal_func.call_args,
-            (
-                (),
-                {
-                    "sender": SimpleType,
-                    "signal": composite_type_created,
-                    "connection": connection,
-                },
-            ),
-        )
 
         # The type should now exist again
         self.assertTrue(does_type_exist(SimpleType._meta.db_table))

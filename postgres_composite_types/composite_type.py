@@ -1,4 +1,3 @@
-import inspect
 import logging
 
 from django.db import models
@@ -11,9 +10,7 @@ from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
 
-from .caster import BaseCaster
 from .fields import BaseField
-from .operations import BaseOperation
 from .quoting import QuotedCompositeType
 
 LOGGER = logging.getLogger(__name__)
@@ -192,11 +189,6 @@ class CompositeType(metaclass=CompositeTypeMeta):
     class Field(BaseField):
         """
         Placeholder for the field that will be produced for this type.
-        """
-
-    class Operation(BaseOperation):
-        """
-        Placeholder for the DB operation that will be produced for this type.
         """
 
     class Caster(CompositeCaster):

@@ -1,8 +1,7 @@
-from django.db.migrations.operations.base import Operation
+from django.db.migrations import CreateModel
+from django.db.migrations.state import ModelState
 
-from .signals import composite_type_created
-
-__all__ = ["BaseOperation"]
+__all__ = ["CreateType"]
 
 
 def sql_field_definition(field_name, field, schema_editor):
@@ -25,28 +24,28 @@ def sql_drop_type(type_name, schema_editor):
     return f"DROP TYPE {quoted_name}"
 
 
-class BaseOperation(Operation):
+class CreateType(CreateModel):
     """Base class for the DB operation that relates to this type."""
 
     reversible = True
-    Meta = None
 
-    def state_forwards(self, app_label, state):
-        pass
+    def __init__(self, *, name: str, fields, options) -> None:
+        super().__init__(name, fields, options)
 
     def describe(self):
-        return f"Creates type {self.Meta.db_table}"
+        return f"Creates type {self.name}"
+
+    def state_forwards(self, app_label, state) -> None:
+        state.add_model(
+            ModelState(app_label, self.name, list(self.fields), dict(self.options))
+        )
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         schema_editor.execute(
-            sql_create_type(self.Meta.db_table, self.Meta.fields, schema_editor)
-        )
-        self.Meta.model.register_composite(schema_editor.connection)
-        composite_type_created.send(
-            self.Meta.model, connection=schema_editor.connection
+            sql_create_type(self.options["db_table"], self.fields, schema_editor)
         )
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         schema_editor.execute(
-            sql_drop_type(self.Meta.db_table, schema_editor=schema_editor)
+            sql_drop_type(self.options["db_table"], schema_editor=schema_editor)
         )
