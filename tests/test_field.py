@@ -70,13 +70,13 @@ class TestMigrations(TransactionTestCase):
 
         # The migrations have already been run, and the type already exists in
         # the database
-        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
+        self.assertTrue(does_type_exist(SimpleType._meta.db_table))
 
         # Run the migration backwards to check the type is deleted
         migrate(self.migrate_from)
 
         # The type should now not exist
-        self.assertFalse(does_type_exist(SimpleType._meta.db_type))
+        self.assertFalse(does_type_exist(SimpleType._meta.db_table))
 
         # A signal is fired when the migration creates the type
         signal_func = mock.Mock()
@@ -84,7 +84,7 @@ class TestMigrations(TransactionTestCase):
 
         # Run the migration forwards to create the type again
         migrate(self.migrate_to)
-        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
+        self.assertTrue(does_type_exist(SimpleType._meta.db_table))
 
         # The signal should have been sent
         self.assertEqual(signal_func.call_count, 1)
@@ -101,7 +101,7 @@ class TestMigrations(TransactionTestCase):
         )
 
         # The type should now exist again
-        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
+        self.assertTrue(does_type_exist(SimpleType._meta.db_table))
 
     def test_migration_quoting(self):
         """Test that migration SQL is generated with correct quoting"""
@@ -109,7 +109,7 @@ class TestMigrations(TransactionTestCase):
         # The migrations have already been run, and the type already exists in
         # the database
         migrate(self.migrate_to)
-        self.assertTrue(does_type_exist(DateRange._meta.db_type))
+        self.assertTrue(does_type_exist(DateRange._meta.db_table))
 
 
 class FieldTests(TestCase):

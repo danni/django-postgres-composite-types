@@ -22,7 +22,7 @@ class BaseField(Field):
         if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available for postgres")
 
-        return self.Meta.db_type
+        return self.Meta.db_table
 
     def formfield(self, **kwargs):  # pylint:disable=arguments-differ
         """Form field for address."""

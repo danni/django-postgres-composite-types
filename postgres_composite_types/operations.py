@@ -7,8 +7,8 @@ __all__ = ["BaseOperation"]
 
 def sql_field_definition(field_name, field, schema_editor):
     quoted_name = schema_editor.quote_name(field_name)
-    db_type = field.db_type(schema_editor.connection)
-    return f"{quoted_name} {db_type}"
+    type_name = field.db_type(schema_editor.connection)
+    return f"{quoted_name} {type_name}"
 
 
 def sql_create_type(type_name, fields, schema_editor):
@@ -35,11 +35,11 @@ class BaseOperation(Operation):
         pass
 
     def describe(self):
-        return f"Creates type {self.Meta.db_type}"
+        return f"Creates type {self.Meta.db_table}"
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         schema_editor.execute(
-            sql_create_type(self.Meta.db_type, self.Meta.fields, schema_editor)
+            sql_create_type(self.Meta.db_table, self.Meta.fields, schema_editor)
         )
         self.Meta.model.register_composite(schema_editor.connection)
         composite_type_created.send(
@@ -48,5 +48,5 @@ class BaseOperation(Operation):
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         schema_editor.execute(
-            sql_drop_type(self.Meta.db_type, schema_editor=schema_editor)
+            sql_drop_type(self.Meta.db_table, schema_editor=schema_editor)
         )

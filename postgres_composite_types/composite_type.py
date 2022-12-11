@@ -63,9 +63,9 @@ class CompositeTypeMeta(type):
             raise TypeError(f'{name} has no "Meta" class') from exc
 
         try:
-            meta_obj.db_type
+            meta_obj.db_table
         except AttributeError as exc:
-            raise TypeError(f"{name}.Meta.db_type is required.") from exc
+            raise TypeError(f"{name}.Meta.db_table is required.") from exc
 
         meta_obj.fields = fields
 
@@ -100,7 +100,7 @@ class CompositeTypeMeta(type):
 
         # Register the type on the first database connection
         connection_created.connect(
-            receiver=cls.database_connected, dispatch_uid=cls._meta.db_type
+            receiver=cls.database_connected, dispatch_uid=cls._meta.db_table
         )
 
     def _capture_descriptors(cls):
@@ -154,7 +154,7 @@ class CompositeTypeMeta(type):
         # Disconnect the signal now - only need to register types on the
         # initial connection
         connection_created.disconnect(
-            cls.database_connected, dispatch_uid=cls._meta.db_type
+            cls.database_connected, dispatch_uid=cls._meta.db_table
         )
 
 
@@ -228,7 +228,7 @@ class CompositeType(metaclass=CompositeTypeMeta):
         with connection.temporary_connection() as cur:
             # This is what to do when the type is coming out of the database
             register_composite(
-                cls._meta.db_type, cur, globally=True, factory=cls.Caster
+                cls._meta.db_table, cur, globally=True, factory=cls.Caster
             )
             # This is what to do when the type is going in to the database
             register_adapter(cls, QuotedCompositeType)

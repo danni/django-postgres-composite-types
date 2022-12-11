@@ -58,5 +58,5 @@ class QuotedCompositeType:
                 f"{name}.prepare() must be called before {name}.getquoted()"
             )
 
-        db_type = self.model._meta.db_type.encode("ascii")
+        db_type = self.model._meta.db_table.encode("ascii")
         return self.value.getquoted() + b"::" + db_type
