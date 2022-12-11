@@ -47,4 +47,6 @@ class BaseOperation(Operation):
         )
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
-        return sql_drop_type(self.Meta.db_type, schema_editor=schema_editor)
+        schema_editor.execute(
+            sql_drop_type(self.Meta.db_type, schema_editor=schema_editor)
+        )
