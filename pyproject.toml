@@ -26,6 +26,9 @@ pytest-django = "^4.5.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+
 [tool.isort]
 profile = "black"
 
