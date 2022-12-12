@@ -1,4 +1,3 @@
-# pylint:disable=invalid-name
 """
 Migration to create custom types
 """
@@ -12,14 +11,14 @@ from ..models import (
     DescriptorType,
     OptionalBits,
     Point,
-    SimpleType)
+    SimpleType,
+)
 
 
 class Migration(migrations.Migration):
     """Migration."""
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         SimpleType.Operation(),

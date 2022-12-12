@@ -14,23 +14,25 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SECRET_KEY = 'SECRET'
+SECRET_KEY = "SECRET"
 
 INSTALLED_APPS = [
-    'postgres_composite_types',
-    'tests',
-    'django_nose',
+    "postgres_composite_types",
+    "tests",
+    "django_nose",
 ]
 
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+TEST_RUNNER = "django_nose.NoseTestSuiteRunner"
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'HOST': 'localhost',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres",
+        "HOST": "localhost",
     }
 }
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
