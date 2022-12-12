@@ -19,10 +19,7 @@ SECRET_KEY = "SECRET"
 INSTALLED_APPS = [
     "postgres_composite_types",
     "tests",
-    "django_nose",
 ]
-
-TEST_RUNNER = "django_nose.NoseTestSuiteRunner"
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
@@ -32,6 +29,7 @@ DATABASES = {
         "NAME": "postgres",
         "USER": "postgres",
         "HOST": "localhost",
+        "PASSWORD": "postgres",
     }
 }
 

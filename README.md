@@ -148,7 +148,7 @@ Clone the repository, go to it's base directory and run the following commands.
 
 Or if you want a specific environment
 
-    tox -e py35-dj2.0
+    tox -e py311-dj41
 
 ## Authors
 
