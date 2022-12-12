@@ -1,0 +1,19 @@
+# Docker compose file to help with testing.
+#
+# Run:
+#   docker-compose up
+#   tox
+#
+# This setup is replicated in the Github Action
+
+version: "3.4"
+
+services:
+  database:
+    image: postgres
+
+    environment:
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
