@@ -1,0 +1,27 @@
+name: pypi
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install poetry
+      run: curl -sSL https://install.python-poetry.org | python3 -
+
+    # - name: Verify tag matches what's in pyproject.toml
+    #   run: test "v$(poetry version --short)" = "$(git describe)"
+
+    - name: Publish package
+      run: poetry publish --build -n
+      env:
+        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}

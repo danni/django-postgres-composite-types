@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-postgres-composite-types"
-version = "0.4.2"
+version = "1.0.0-beta.0"
 description = "Postgres composite types support for Django"
 authors = ["Danielle Madeley <danielle@madeley.id.au>"]
 license = "BSD"
