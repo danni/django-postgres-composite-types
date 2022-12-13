@@ -84,6 +84,7 @@ class TestMigrations(TransactionTestCase):
 
         # Run the migration forwards to create the type again
         migrate(self.migrate_to)
+        self.assertTrue(does_type_exist(SimpleType._meta.db_type))
 
         # The signal should have been sent
         self.assertEqual(signal_func.call_count, 1)
