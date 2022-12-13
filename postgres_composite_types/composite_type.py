@@ -6,6 +6,7 @@ from django.db.backends.postgresql.base import (
 )
 from django.db.backends.signals import connection_created
 from django.db.models.base import ModelBase
+from django.db.models.manager import EmptyManager
 from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
@@ -63,6 +64,11 @@ class CompositeTypeMeta(ModelBase):
 
         attrs["__id"] = DummyField(primary_key=True, serialize=False)
         attrs["__id"].name = "pk"
+
+        # Use an EmptyManager for everything as types cannot be queried.
+        meta_obj.default_manager_name = "objects"
+        meta_obj.base_manager_name = "objects"
+        attrs["objects"] = EmptyManager(model=None)
 
         return super().__new__(cls, name, bases, attrs)
 
