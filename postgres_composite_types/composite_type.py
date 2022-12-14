@@ -7,8 +7,9 @@ from django.db.models.manager import EmptyManager
 from django.db.models.signals import post_migrate
 from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
-from psycopg2.extras import CompositeCaster, register_composite
+from psycopg2.extras import register_composite
 
+from .caster import BaseCaster
 from .fields import BaseField, DummyField
 from .quoting import QuotedCompositeType
 
@@ -206,9 +207,10 @@ class CompositeType(metaclass=CompositeTypeMeta):
 
         with connection.temporary_connection() as cur:
             # This is what to do when the type is coming out of the database
-            register_composite(
-                cls._meta.db_table, cur, globally=True, factory=cls.Caster
-            )
+            # We create a custom class subclassing BaseCaster (see caster.py),
+            # and set _composite_type_model attribute accordingly.
+            caster = type("Caster", (BaseCaster,), {"_composite_type_model": cls})
+            register_composite(cls._meta.db_table, cur, globally=True, factory=caster)
 
     def __conform__(self, protocol):
         """
@@ -226,11 +228,6 @@ class CompositeType(metaclass=CompositeTypeMeta):
     class Field(BaseField):
         """
         Placeholder for the field that will be produced for this type.
-        """
-
-    class Caster(CompositeCaster):
-        """
-        Placeholder for the caster that will be produced for this type
         """
 
     def _get_next_or_previous_by_FIELD(self):

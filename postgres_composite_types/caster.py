@@ -9,7 +9,5 @@ class BaseCaster(CompositeCaster):
     instance.
     """
 
-    Meta = None
-
     def make(self, values):
-        return self.Meta.model(*values)
+        return self._composite_type_model(*values)
