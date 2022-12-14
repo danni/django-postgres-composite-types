@@ -87,9 +87,14 @@ class CompositeTypeMeta(ModelBase):
         Register this type with the database the first time a connection is
         made.
         """
+
         if isinstance(connection, PostgresDatabaseWrapper):
-            # Try to register the type. If the type has not been created in a
-            # migration, the registration will fail. The type will be
+            # On-connect, register the QuotedCompositeType with psycopg2.
+            # This is what to do when the type is going in to the database
+            register_adapter(cls, QuotedCompositeType)
+
+            # Now try to register the type. If the type has not been created
+            # in a migration, the registration will fail. The type will be
             # registered as part of the migration, so hopefully the migration
             # will run soon.
             try:
@@ -179,8 +184,6 @@ class CompositeType(metaclass=CompositeTypeMeta):
             register_composite(
                 cls._meta.db_table, cur, globally=True, factory=cls.Caster
             )
-            # This is what to do when the type is going in to the database
-            register_adapter(cls, QuotedCompositeType)
 
     def __conform__(self, protocol):
         """
