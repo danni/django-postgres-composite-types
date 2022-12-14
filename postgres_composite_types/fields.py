@@ -24,6 +24,14 @@ class BaseField(Field):
         "bad_json": "to_python() received a string that was not valid JSON",
     }
 
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+
+        name = path.replace("postgres_composite_types.composite_type.", "")
+        path = self._composite_type_model.__module__ + "." + name
+
+        return name, path, args, kwargs
+
     def db_type(self, connection):
         if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available for postgres")
