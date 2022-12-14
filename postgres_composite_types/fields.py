@@ -1,10 +1,15 @@
 import json
+from typing import TYPE_CHECKING, Type
 
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.base import (
     DatabaseWrapper as PostgresDatabaseWrapper,
 )
 from django.db.models import Field
+
+if TYPE_CHECKING:
+    from .composite_type import CompositeType
+
 
 __all__ = ["BaseField"]
 
@@ -21,6 +26,8 @@ class DummyField(Field):
 
 class BaseField(Field):
     """Base class for the field that relates to this type."""
+
+    _composite_type_model: Type["CompositeType"]
 
     default_error_messages = {
         "bad_json": "to_python() received a string that was not valid JSON",

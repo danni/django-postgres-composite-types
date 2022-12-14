@@ -1,4 +1,5 @@
 import logging
+from typing import Type
 
 from django.db import connections, models
 from django.db.backends.signals import connection_created
@@ -66,10 +67,10 @@ class CompositeTypeMeta(ModelBase):
         # Use an EmptyManager for everything as types cannot be queried.
         meta_obj.default_manager_name = "objects"
         meta_obj.base_manager_name = "objects"
-        attrs["objects"] = EmptyManager(model=None)
+        attrs["objects"] = EmptyManager(model=None)  # type: ignore
 
         ret = super().__new__(cls, name, bases, attrs)
-        ret.Field._composite_type_model = ret
+        ret.Field._composite_type_model = ret  # type: ignore
         return ret
 
     def __init__(cls, name, bases, attrs):
@@ -147,16 +148,18 @@ class CompositeType(metaclass=CompositeTypeMeta):
 
     # The database connection this type is registered with
     registered_connection = None
+    _meta: Type
 
     def __init__(self, *args, **kwargs):
         if args and kwargs:
             raise RuntimeError("Specify either args or kwargs but not both.")
 
-        for field in self._meta.fields:
+        fields = self.get_fields()
+        for field in fields:
             setattr(self, field.name, None)
 
         # Unpack any args as if they came from the type
-        for field, arg in zip(self._meta.fields, args):
+        for field, arg in zip(fields, args):
             setattr(self, field.name, arg)
 
         for name, value in kwargs.items():
@@ -169,13 +172,13 @@ class CompositeType(metaclass=CompositeTypeMeta):
     def __to_tuple__(self):
         return tuple(
             field.get_prep_value(getattr(self, field.name))
-            for field in self._meta.fields
+            for field in self.get_fields()
         )
 
     def __to_dict__(self):
         return {
             field.name: field.get_prep_value(getattr(self, field.name))
-            for field in self._meta.fields
+            for field in self.get_fields()
         }
 
     def __eq__(self, other):
@@ -183,7 +186,7 @@ class CompositeType(metaclass=CompositeTypeMeta):
             return False
         if self._meta.model != other._meta.model:
             return False
-        for field in self._meta.fields:
+        for field in self.get_fields():
             if getattr(self, field.name) != getattr(other, field.name):
                 return False
         return True
@@ -235,3 +238,6 @@ class CompositeType(metaclass=CompositeTypeMeta):
     @classmethod
     def check(cls, **kwargs):
         return []
+
+    def get_fields(self):
+        return self._meta.fields
