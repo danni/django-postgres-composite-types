@@ -32,6 +32,7 @@ class CompositeTypeMeta(ModelBase):
         """
         return {}
 
+    # pylint:disable=arguments-differ
     def __new__(cls, name, bases, attrs):
         # Only apply the metaclass to our subclasses
         if name == "CompositeType":
@@ -78,6 +79,7 @@ class CompositeTypeMeta(ModelBase):
         if name == "CompositeType":
             return
 
+        # pylint:disable=no-value-for-parameter
         cls._connect_signals()
 
     def _on_signal_register_type(cls, signal, sender, connection=None, **kwargs):
@@ -111,7 +113,7 @@ class CompositeTypeMeta(ModelBase):
                 )
             else:
                 # Registration succeeded.Disconnect the signals now.
-                cls._disconnect_signals()
+                cls._disconnect_signals()  # pylint:disable=no-value-for-parameter
 
     def _connect_signals(cls):
         type_id = cls._meta.db_table
@@ -232,6 +234,7 @@ class CompositeType(metaclass=CompositeTypeMeta):
         Placeholder for the field that will be produced for this type.
         """
 
+    # pylint:disable=invalid-name
     def _get_next_or_previous_by_FIELD(self):
         pass
 
