@@ -1,5 +1,7 @@
 from psycopg2.extensions import ISQLQuote, adapt
 
+from .fields import DummyField
+
 __all__ = ["QuotedCompositeType"]
 
 
@@ -23,7 +25,7 @@ class QuotedCompositeType:
                     self.model.registered_connection,
                 )
                 for field in self.model._meta.fields
-                if field.name != "pk"
+                if field.name != DummyField.name
             )
         )
 

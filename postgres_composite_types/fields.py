@@ -16,6 +16,8 @@ class DummyField(Field):
     all models to have a primary key.
     """
 
+    name = "_id_not_used"
+
 
 class BaseField(Field):
     """Base class for the field that relates to this type."""
@@ -73,7 +75,7 @@ class BaseField(Field):
                 **{
                     field.name: field.to_python(value.get(field.name))
                     for field in self._composite_type_model._meta.fields
-                    if field.name != "pk"
+                    if field.name != DummyField.name
                 }
             )
 
@@ -89,6 +91,6 @@ class BaseField(Field):
             {
                 field.name: field.value_to_string(value)
                 for field in self._composite_type_model._meta.fields
-                if field.name != "pk"
+                if field.name != DummyField.name
             }
         )

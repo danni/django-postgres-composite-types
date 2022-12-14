@@ -61,8 +61,7 @@ class CompositeTypeMeta(ModelBase):
         # create the field for this Type
         attrs["Field"] = type(f"{name}.Field", (BaseField,), {})
 
-        attrs["__id"] = DummyField(primary_key=True, serialize=False)
-        attrs["__id"].name = "pk"
+        attrs[DummyField.name] = DummyField(primary_key=True, serialize=False)
 
         # Use an EmptyManager for everything as types cannot be queried.
         meta_obj.default_manager_name = "objects"
