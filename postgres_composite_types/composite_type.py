@@ -1,12 +1,10 @@
 import logging
 
-from django.db import models
-from django.db.backends.postgresql.base import (
-    DatabaseWrapper as PostgresDatabaseWrapper,
-)
+from django.db import connections, models
 from django.db.backends.signals import connection_created
 from django.db.models.base import ModelBase
 from django.db.models.manager import EmptyManager
+from django.db.models.signals import post_migrate
 from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
 from psycopg2.extras import CompositeCaster, register_composite
@@ -77,18 +75,18 @@ class CompositeTypeMeta(ModelBase):
         if name == "CompositeType":
             return
 
-        # Register the type on the first database connection
-        connection_created.connect(
-            receiver=cls.database_connected, dispatch_uid=cls._meta.db_table
-        )
+        cls._connect_signals()
 
-    def database_connected(cls, signal, sender, connection, **kwargs):
+    def _on_signal_register_type(cls, signal, sender, connection=None, **kwargs):
         """
-        Register this type with the database the first time a connection is
-        made.
+        Attempt registering the type after a migration succeeds.
         """
+        from django.db.backends.postgresql.base import DatabaseWrapper
 
-        if isinstance(connection, PostgresDatabaseWrapper):
+        if connection is None:
+            connection = connections["default"]
+
+        if isinstance(connection, DatabaseWrapper):
             # On-connect, register the QuotedCompositeType with psycopg2.
             # This is what to do when the type is going in to the database
             register_adapter(cls, QuotedCompositeType)
@@ -97,6 +95,7 @@ class CompositeTypeMeta(ModelBase):
             # in a migration, the registration will fail. The type will be
             # registered as part of the migration, so hopefully the migration
             # will run soon.
+
             try:
                 cls.register_composite(connection)
             except ProgrammingError as exc:
@@ -107,11 +106,35 @@ class CompositeTypeMeta(ModelBase):
                     cls.__name__,
                     exc,
                 )
+            else:
+                # Registration succeeded.Disconnect the signals now.
+                cls._disconnect_signals()
 
-        # Disconnect the signal now - only need to register types on the
-        # initial connection
+    def _connect_signals(cls):
+        type_id = cls._meta.db_table
+
+        # Register the type on the first database connection
+        connection_created.connect(
+            receiver=cls._on_signal_register_type, dispatch_uid=f"connect:{type_id}"
+        )
+
+        # Also register on post-migrate.
+        # This ensures that, if the on-connect signal failed due to a migration
+        # not having run yet, running the migration will still register it,
+        # even if in the same session (this can happen in tests for example).
+        # dispatch_uid needs to be distinct from the one on connection_created.
+        post_migrate.connect(
+            receiver=cls._on_signal_register_type,
+            dispatch_uid=f"post_migrate:{type_id}",
+        )
+
+    def _disconnect_signals(cls):
+        type_id = cls._meta.db_table
         connection_created.disconnect(
-            cls.database_connected, dispatch_uid=cls._meta.db_table
+            cls._on_signal_register_type, dispatch_uid=f"connect:{type_id}"
+        )
+        post_migrate.disconnect(
+            cls._on_signal_register_type, dispatch_uid=f"post_migrate:{type_id}"
         )
 
 
