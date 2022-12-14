@@ -58,7 +58,7 @@ class CompositeTypeMeta(ModelBase):
             raise TypeError(f"{name}.Meta.db_table is required.") from exc
 
         # create the field for this Type
-        attrs["Field"] = type(f"{name}.Field", (BaseField,), {"Meta": meta_obj})
+        attrs["Field"] = type(f"{name}.Field", (BaseField,), {})
 
         attrs["__id"] = DummyField(primary_key=True, serialize=False)
         attrs["__id"].name = "pk"
@@ -68,7 +68,9 @@ class CompositeTypeMeta(ModelBase):
         meta_obj.base_manager_name = "objects"
         attrs["objects"] = EmptyManager(model=None)
 
-        return super().__new__(cls, name, bases, attrs)
+        ret = super().__new__(cls, name, bases, attrs)
+        ret.Field._composite_type_model = ret
+        return ret
 
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)

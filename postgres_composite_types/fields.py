@@ -20,8 +20,6 @@ class DummyField(Field):
 class BaseField(Field):
     """Base class for the field that relates to this type."""
 
-    Meta = None
-
     default_error_messages = {
         "bad_json": "to_python() received a string that was not valid JSON",
     }
@@ -30,7 +28,7 @@ class BaseField(Field):
         if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available for postgres")
 
-        return self.Meta.db_table
+        return self._composite_type_model._meta.db_table
 
     def formfield(self, **kwargs):  # pylint:disable=arguments-differ
         """Form field for address."""
@@ -38,7 +36,7 @@ class BaseField(Field):
 
         defaults = {
             "form_class": CompositeTypeField,
-            "model": self.Meta.model,
+            "model": self._composite_type_model,
         }
         defaults.update(kwargs)
 
@@ -63,10 +61,11 @@ class BaseField(Field):
                     code="bad_json",
                 ) from exc
 
-            return self.Meta.model(
+            return self._composite_type_model(
                 **{
-                    name: field.to_python(value.get(name))
-                    for name, field in self.Meta.fields
+                    field.name: field.to_python(value.get(field.name))
+                    for field in self._composite_type_model._meta.fields
+                    if field.name != "pk"
                 }
             )
 
@@ -79,5 +78,9 @@ class BaseField(Field):
         """
         value = self.value_from_object(obj)
         return json.dumps(
-            {name: field.value_to_string(value) for name, field in self.Meta.fields}
+            {
+                field.name: field.value_to_string(value)
+                for field in self._composite_type_model._meta.fields
+                if field.name != "pk"
+            }
         )
