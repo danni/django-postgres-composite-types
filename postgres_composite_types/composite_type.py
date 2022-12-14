@@ -1,19 +1,17 @@
-import inspect
 import logging
-import sys
+from typing import Type
 
-from django.db import models
-from django.db.backends.postgresql.base import (
-    DatabaseWrapper as PostgresDatabaseWrapper,
-)
+from django.db import connections, models
 from django.db.backends.signals import connection_created
+from django.db.models.base import ModelBase
+from django.db.models.manager import EmptyManager
+from django.db.models.signals import post_migrate
 from psycopg2 import ProgrammingError
 from psycopg2.extensions import ISQLQuote, register_adapter
-from psycopg2.extras import CompositeCaster, register_composite
+from psycopg2.extras import register_composite
 
 from .caster import BaseCaster
-from .fields import BaseField
-from .operations import BaseOperation
+from .fields import BaseField, DummyField
 from .quoting import QuotedCompositeType
 
 LOGGER = logging.getLogger(__name__)
@@ -21,13 +19,7 @@ LOGGER = logging.getLogger(__name__)
 __all__ = ["CompositeType"]
 
 
-def _add_class_to_module(cls, module_name):
-    cls.__module__ = module_name
-    module = sys.modules[module_name]
-    setattr(module, cls.__name__, cls)
-
-
-class CompositeTypeMeta(type):
+class CompositeTypeMeta(ModelBase):
     """Metaclass for Type."""
 
     @classmethod
@@ -40,6 +32,7 @@ class CompositeTypeMeta(type):
         """
         return {}
 
+    # pylint:disable=arguments-differ
     def __new__(cls, name, bases, attrs):
         # Only apply the metaclass to our subclasses
         if name == "CompositeType":
@@ -52,94 +45,62 @@ class CompositeTypeMeta(type):
                 raise TypeError("Composite types cannot contain " "related fields")
 
             if isinstance(value, models.Field):
-                field = attrs.pop(field_name)
+                field = attrs[field_name]
                 field.set_attributes_from_name(field_name)
                 fields.append((field_name, field))
 
         # retrieve the Meta from our declaration
         try:
-            meta_obj = attrs.pop("Meta")
+            meta_obj = attrs["Meta"]
         except KeyError as exc:
             raise TypeError(f'{name} has no "Meta" class') from exc
 
         try:
-            meta_obj.db_type
+            meta_obj.db_table
         except AttributeError as exc:
-            raise TypeError(f"{name}.Meta.db_type is required.") from exc
-
-        meta_obj.fields = fields
+            raise TypeError(f"{name}.Meta.db_table is required.") from exc
 
         # create the field for this Type
-        attrs["Field"] = type(f"{name}Field", (BaseField,), {"Meta": meta_obj})
+        attrs["Field"] = type(f"{name}.Field", (BaseField,), {})
 
-        # add field class to the module in which the composite type class lives
-        # this is required for migrations to work
-        _add_class_to_module(attrs["Field"], attrs["__module__"])
+        attrs[DummyField.name] = DummyField(primary_key=True, serialize=False)
 
-        # create the database operation for this type
-        attrs["Operation"] = type(
-            f"Create{name}Type", (BaseOperation,), {"Meta": meta_obj}
-        )
+        # Use an EmptyManager for everything as types cannot be queried.
+        meta_obj.default_manager_name = "objects"
+        meta_obj.base_manager_name = "objects"
+        attrs["objects"] = EmptyManager(model=None)  # type: ignore
 
-        # create the caster for this type
-        attrs["Caster"] = type(f"{name}Caster", (BaseCaster,), {"Meta": meta_obj})
-
-        new_cls = super().__new__(cls, name, bases, attrs)
-        new_cls._meta = meta_obj
-
-        meta_obj.model = new_cls
-
-        return new_cls
+        ret = super().__new__(cls, name, bases, attrs)
+        ret.Field._composite_type_model = ret  # type: ignore
+        return ret
 
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)
         if name == "CompositeType":
             return
 
-        cls._capture_descriptors()  # pylint:disable=no-value-for-parameter
+        # pylint:disable=no-value-for-parameter
+        cls._connect_signals()
 
-        # Register the type on the first database connection
-        connection_created.connect(
-            receiver=cls.database_connected, dispatch_uid=cls._meta.db_type
-        )
-
-    def _capture_descriptors(cls):
-        """Work around for not being able to call contribute_to_class.
-
-        Too much code to fake in our meta objects etc to be able to call
-        contribute_to_class directly, but we still want fields to be able
-        to set custom type descriptors. So we fake a model instead, with the
-        same fields as the composite type, and extract any custom descriptors
-        on that.
+    def _on_signal_register_type(cls, signal, sender, connection=None, **kwargs):
         """
-
-        attrs = dict(cls._meta.fields)
-
-        # we need to build a unique app label and model name combination for
-        # every composite type so django doesn't complain about model reloads
-        class Meta:
-            app_label = cls.__module__
-
-        attrs["__module__"] = cls.__module__
-        attrs["Meta"] = Meta
-        model_name = f"_Fake{cls.__name__}Model"
-
-        fake_model = type(model_name, (models.Model,), attrs)
-        for field_name, _ in cls._meta.fields:
-            attr = getattr(fake_model, field_name)
-            if inspect.isdatadescriptor(attr):
-                setattr(cls, field_name, attr)
-
-    def database_connected(cls, signal, sender, connection, **kwargs):
+        Attempt registering the type after a migration succeeds.
         """
-        Register this type with the database the first time a connection is
-        made.
-        """
-        if isinstance(connection, PostgresDatabaseWrapper):
-            # Try to register the type. If the type has not been created in a
-            # migration, the registration will fail. The type will be
+        from django.db.backends.postgresql.base import DatabaseWrapper
+
+        if connection is None:
+            connection = connections["default"]
+
+        if isinstance(connection, DatabaseWrapper):
+            # On-connect, register the QuotedCompositeType with psycopg2.
+            # This is what to do when the type is going in to the database
+            register_adapter(cls, QuotedCompositeType)
+
+            # Now try to register the type. If the type has not been created
+            # in a migration, the registration will fail. The type will be
             # registered as part of the migration, so hopefully the migration
             # will run soon.
+
             try:
                 cls.register_composite(connection)
             except ProgrammingError as exc:
@@ -150,11 +111,35 @@ class CompositeTypeMeta(type):
                     cls.__name__,
                     exc,
                 )
+            else:
+                # Registration succeeded.Disconnect the signals now.
+                cls._disconnect_signals()  # pylint:disable=no-value-for-parameter
 
-        # Disconnect the signal now - only need to register types on the
-        # initial connection
+    def _connect_signals(cls):
+        type_id = cls._meta.db_table
+
+        # Register the type on the first database connection
+        connection_created.connect(
+            receiver=cls._on_signal_register_type, dispatch_uid=f"connect:{type_id}"
+        )
+
+        # Also register on post-migrate.
+        # This ensures that, if the on-connect signal failed due to a migration
+        # not having run yet, running the migration will still register it,
+        # even if in the same session (this can happen in tests for example).
+        # dispatch_uid needs to be distinct from the one on connection_created.
+        post_migrate.connect(
+            receiver=cls._on_signal_register_type,
+            dispatch_uid=f"post_migrate:{type_id}",
+        )
+
+    def _disconnect_signals(cls):
+        type_id = cls._meta.db_table
         connection_created.disconnect(
-            cls.database_connected, dispatch_uid=cls._meta.db_type
+            cls._on_signal_register_type, dispatch_uid=f"connect:{type_id}"
+        )
+        post_migrate.disconnect(
+            cls._on_signal_register_type, dispatch_uid=f"post_migrate:{type_id}"
         )
 
 
@@ -163,22 +148,21 @@ class CompositeType(metaclass=CompositeTypeMeta):
     A new composite type stored in Postgres.
     """
 
-    _meta = None
-
     # The database connection this type is registered with
     registered_connection = None
+    _meta: Type
 
     def __init__(self, *args, **kwargs):
         if args and kwargs:
             raise RuntimeError("Specify either args or kwargs but not both.")
 
-        # Initialise blank values for anyone expecting them
-        for name, _ in self._meta.fields:
-            setattr(self, name, None)
+        fields = self.get_fields()
+        for field in fields:
+            setattr(self, field.name, None)
 
         # Unpack any args as if they came from the type
-        for (name, _), arg in zip(self._meta.fields, args):
-            setattr(self, name, arg)
+        for field, arg in zip(fields, args):
+            setattr(self, field.name, arg)
 
         for name, value in kwargs.items():
             setattr(self, name, value)
@@ -189,14 +173,14 @@ class CompositeType(metaclass=CompositeTypeMeta):
 
     def __to_tuple__(self):
         return tuple(
-            field.get_prep_value(getattr(self, name))
-            for name, field in self._meta.fields
+            field.get_prep_value(getattr(self, field.name))
+            for field in self.get_fields()
         )
 
     def __to_dict__(self):
         return {
-            name: field.get_prep_value(getattr(self, name))
-            for name, field in self._meta.fields
+            field.name: field.get_prep_value(getattr(self, field.name))
+            for field in self.get_fields()
         }
 
     def __eq__(self, other):
@@ -204,8 +188,8 @@ class CompositeType(metaclass=CompositeTypeMeta):
             return False
         if self._meta.model != other._meta.model:
             return False
-        for name, _ in self._meta.fields:
-            if getattr(self, name) != getattr(other, name):
+        for field in self.get_fields():
+            if getattr(self, field.name) != getattr(other, field.name):
                 return False
         return True
 
@@ -227,11 +211,10 @@ class CompositeType(metaclass=CompositeTypeMeta):
 
         with connection.temporary_connection() as cur:
             # This is what to do when the type is coming out of the database
-            register_composite(
-                cls._meta.db_type, cur, globally=True, factory=cls.Caster
-            )
-            # This is what to do when the type is going in to the database
-            register_adapter(cls, QuotedCompositeType)
+            # We create a custom class subclassing BaseCaster (see caster.py),
+            # and set _composite_type_model attribute accordingly.
+            caster = type("Caster", (BaseCaster,), {"_composite_type_model": cls})
+            register_composite(cls._meta.db_table, cur, globally=True, factory=caster)
 
     def __conform__(self, protocol):
         """
@@ -251,12 +234,13 @@ class CompositeType(metaclass=CompositeTypeMeta):
         Placeholder for the field that will be produced for this type.
         """
 
-    class Operation(BaseOperation):
-        """
-        Placeholder for the DB operation that will be produced for this type.
-        """
+    # pylint:disable=invalid-name
+    def _get_next_or_previous_by_FIELD(self):
+        pass
 
-    class Caster(CompositeCaster):
-        """
-        Placeholder for the caster that will be produced for this type
-        """
+    @classmethod
+    def check(cls, **kwargs):
+        return []
+
+    def get_fields(self):
+        return self._meta.fields

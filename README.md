@@ -35,7 +35,7 @@ class Address(CompositeType):
     country = models.CharField(max_length=50)
 
     class Meta:
-        db_type = 'x_address'  # Required
+        db_table = 'x_address'  # Required
 
 
 class Person(models.Model):
@@ -76,7 +76,7 @@ class Card(CompositeType):
     rank = models.CharField(max_length=2)
 
     class Meta:
-        db_type = 'card'
+        db_table = 'card'
 
 
 class Hand(models.Model):
@@ -94,13 +94,13 @@ class Point(CompositeType):
     y = models.IntegerField()
 
     class Meta:
-        db_type = 'x_point'  # Postgres already has a point type
+        db_table = 'x_point'  # Postgres already has a point type
 
 
 class Box(CompositeType):
     """An axis-aligned box on the cartesian plane."""
     class Meta:
-        db_type = 'x_box'  # Postgres already has a box type
+        db_table = 'x_box'  # Postgres already has a box type
 
     top_left = Point.Field()
     bottom_right = Point.Field()

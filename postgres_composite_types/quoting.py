@@ -1,5 +1,7 @@
 from psycopg2.extensions import ISQLQuote, adapt
 
+from .fields import DummyField
+
 __all__ = ["QuotedCompositeType"]
 
 
@@ -19,9 +21,11 @@ class QuotedCompositeType:
         self.value = adapt(
             tuple(
                 field.get_db_prep_value(
-                    field.value_from_object(self.obj), self.model.registered_connection
+                    field.value_from_object(self.obj),
+                    self.model.registered_connection,
                 )
-                for _, field in self.model._meta.fields
+                for field in self.model._meta.fields
+                if field.name != DummyField.name
             )
         )
 
@@ -58,5 +62,5 @@ class QuotedCompositeType:
                 f"{name}.prepare() must be called before {name}.getquoted()"
             )
 
-        db_type = self.model._meta.db_type.encode("ascii")
+        db_type = self.model._meta.db_table.encode("ascii")
         return self.value.getquoted() + b"::" + db_type

@@ -12,6 +12,7 @@ from django.contrib.postgres.utils import prefix_validation_error
 from django.utils.translation import gettext as _
 
 from . import CompositeType
+from .fields import DummyField
 
 LOGGER = logging.getLogger(__name__)
 
@@ -61,13 +62,16 @@ class CompositeTypeField(forms.Field):
     }
 
     def __init__(self, *args, fields=None, model=None, **kwargs):
-        if fields is None:
-            fields = {name: field.formfield() for name, field in model._meta.fields}
-        else:
-            fields = dict(fields)
+        fields = {
+            field.name: field.formfield()
+            for field in fields or model._meta.fields
+            if field.name != DummyField.name
+        }
 
         widget = CompositeTypeWidget(
-            widgets=[(name, field.widget) for name, field in fields.items()]
+            widgets=[
+                (name, getattr(field, "widget", None)) for name, field in fields.items()
+            ]
         )
 
         super().__init__(*args, widget=widget, **kwargs)
@@ -75,7 +79,8 @@ class CompositeTypeField(forms.Field):
         self.model = model
 
         for field, widget in zip(fields.values(), self.widget.widgets.values()):
-            widget.attrs["placeholder"] = field.label
+            if widget:
+                widget.attrs["placeholder"] = getattr(field, "label", "")
 
     def prepare_value(self, value):
         """

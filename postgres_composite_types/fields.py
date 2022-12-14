@@ -1,4 +1,5 @@
 import json
+from typing import TYPE_CHECKING, Type
 
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.base import (
@@ -6,23 +7,45 @@ from django.db.backends.postgresql.base import (
 )
 from django.db.models import Field
 
+if TYPE_CHECKING:
+    from .composite_type import CompositeType
+
+
 __all__ = ["BaseField"]
+
+
+class DummyField(Field):
+    """
+    A dummy field added on every CompositeType, that behaves as the
+    type's primary key. This is a hack due to Django's requirement for
+    all models to have a primary key.
+    """
+
+    name = "_id_not_used"
 
 
 class BaseField(Field):
     """Base class for the field that relates to this type."""
 
-    Meta = None
+    _composite_type_model: Type["CompositeType"]
 
     default_error_messages = {
         "bad_json": "to_python() received a string that was not valid JSON",
     }
 
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+
+        name = path.replace("postgres_composite_types.composite_type.", "")
+        path = self._composite_type_model.__module__ + "." + name
+
+        return name, path, args, kwargs
+
     def db_type(self, connection):
         if not isinstance(connection, PostgresDatabaseWrapper):
             raise RuntimeError("Composite types are only available for postgres")
 
-        return self.Meta.db_type
+        return self._composite_type_model._meta.db_table
 
     def formfield(self, **kwargs):  # pylint:disable=arguments-differ
         """Form field for address."""
@@ -30,7 +53,7 @@ class BaseField(Field):
 
         defaults = {
             "form_class": CompositeTypeField,
-            "model": self.Meta.model,
+            "model": self._composite_type_model,
         }
         defaults.update(kwargs)
 
@@ -55,10 +78,11 @@ class BaseField(Field):
                     code="bad_json",
                 ) from exc
 
-            return self.Meta.model(
+            return self._composite_type_model(
                 **{
-                    name: field.to_python(value.get(name))
-                    for name, field in self.Meta.fields
+                    field.name: field.to_python(value.get(field.name))
+                    for field in self._composite_type_model._meta.fields
+                    if field.name != DummyField.name
                 }
             )
 
@@ -71,5 +95,9 @@ class BaseField(Field):
         """
         value = self.value_from_object(obj)
         return json.dumps(
-            {name: field.value_to_string(value) for name, field in self.Meta.fields}
+            {
+                field.name: field.value_to_string(value)
+                for field in self._composite_type_model._meta.fields
+                if field.name != DummyField.name
+            }
         )

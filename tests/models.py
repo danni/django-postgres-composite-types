@@ -11,7 +11,7 @@ class SimpleType(CompositeType):
     """A test type."""
 
     class Meta:
-        db_type = "test_type"
+        db_table = "test_type"
 
     a = models.IntegerField(verbose_name="A number")
     b = models.CharField(verbose_name="A name", max_length=32)
@@ -31,7 +31,7 @@ class OptionalBits(CompositeType):
     optional = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
-        db_type = "optional_type"
+        db_table = "optional_type"
 
 
 class OptionalModel(models.Model):
@@ -44,7 +44,7 @@ class Card(CompositeType):
     """A playing card."""
 
     class Meta:
-        db_type = "card"
+        db_table = "card"
 
     suit = models.CharField(max_length=1)
     rank = models.CharField(max_length=2)
@@ -60,7 +60,7 @@ class Point(CompositeType):
     """A point on the cartesian plane."""
 
     class Meta:
-        db_type = "test_point"  # Postgres already has a point type
+        db_table = "test_point"  # Postgres already has a point type
 
     x = models.IntegerField()
     y = models.IntegerField()
@@ -70,7 +70,7 @@ class Box(CompositeType):
     """An axis-aligned box on the cartesian plane."""
 
     class Meta:
-        db_type = "test_box"  # Postgres already has a box type
+        db_table = "test_box"  # Postgres already has a box type
 
     top_left = Point.Field()
     bottom_right = Point.Field()
@@ -97,7 +97,7 @@ class DateRange(CompositeType):
     """A date range with start and end."""
 
     class Meta:
-        db_type = "test_date_range"
+        db_table = "test_date_range"
 
     start = models.DateTimeField()
     end = models.DateTimeField()  # uses reserved keyword
@@ -114,7 +114,7 @@ class DescriptorType(CompositeType):
     """Has a field implementing a custom descriptor"""
 
     class Meta:
-        db_type = "test_custom_descriptor"
+        db_table = "test_custom_descriptor"
 
     value = TriplingIntegerField()
 
