@@ -87,6 +87,19 @@ class CompositeTypeMeta(type):
         new_cls = super().__new__(cls, name, bases, attrs)
         new_cls._meta = meta_obj
 
+        for _, field in new_cls._meta.fields:
+            new_cls.Field.register_lookup(
+                type(
+                    f"{name}{field.attname}Lookup",
+                    (models.Transform,),
+                    {
+                        "lookup_name": field.attname,
+                        "arity": 1,
+                        "template": f'(%(expressions)s)."{field.column}"',
+                    },
+                )
+            )
+
         meta_obj.model = new_cls
 
         return new_cls

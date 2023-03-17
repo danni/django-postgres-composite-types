@@ -11,6 +11,7 @@ from ..models import (
     DescriptorType,
     OptionalBits,
     Point,
+    RenamedMemberType,
     SimpleType,
 )
 
@@ -28,4 +29,5 @@ class Migration(migrations.Migration):
         Box.Operation(),
         DateRange.Operation(),
         DescriptorType.Operation(),
+        RenamedMemberType.Operation(),
     ]

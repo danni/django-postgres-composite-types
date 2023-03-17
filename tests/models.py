@@ -123,3 +123,19 @@ class DescriptorModel(models.Model):
     """Has a composite type with a field implementing a custom descriptor"""
 
     field = DescriptorType.Field()
+
+
+class RenamedMemberType(CompositeType):
+    """Has a field with a different name in ORM vs db"""
+
+    class Meta:
+        db_type = "test_renamed_member"
+
+    orm_name = models.CharField(db_column="db_name", max_length=32)
+    other = models.BooleanField(default=False)
+
+
+class RenamedMemberModel(models.Model):
+    """Has a composite type with a member attr name that differs from the column name"""
+
+    field = RenamedMemberType.Field()
