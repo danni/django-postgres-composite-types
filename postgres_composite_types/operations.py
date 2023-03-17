@@ -13,8 +13,7 @@ def sql_field_definition(field_name, field, schema_editor):
 
 def sql_create_type(type_name, fields, schema_editor):
     fields_list = ", ".join(
-        sql_field_definition(field_name, field, schema_editor)
-        for field_name, field in fields
+        sql_field_definition(field.column, field, schema_editor) for _, field in fields
     )
     quoted_name = schema_editor.quote_name(type_name)
     return f"CREATE TYPE {quoted_name} AS ({fields_list})"
