@@ -7,7 +7,6 @@ import tests.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -113,6 +112,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("test_field", tests.models.SimpleTypeField()),
+            ],
+        ),
+        migrations.CreateModel(
+            name="RenamedMemberModel",
+            fields=[
+                ("field", tests.models.RenamedMemberTypeField()),
             ],
         ),
     ]

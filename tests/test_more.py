@@ -1,11 +1,24 @@
 """
 Tests for composite fields in combination with other interesting fields.
 """
+import datetime
 
 from django.db.migrations.writer import MigrationWriter
 from django.test import TestCase
 
-from .models import Box, Card, DescriptorModel, DescriptorType, Hand, Item, Point
+from .models import (
+    Box,
+    Card,
+    DescriptorModel,
+    DescriptorType,
+    Hand,
+    Item,
+    Point,
+    RenamedMemberModel,
+    RenamedMemberType,
+    SimpleModel,
+    SimpleType,
+)
 
 
 class TestArrayFields(TestCase):
@@ -115,3 +128,35 @@ class TestCustomDescriptors(TestCase):
         model = DescriptorModel(field=DescriptorType(value=0))
         model.field.value = 14
         self.assertEqual(model.field.value, 42)
+
+
+class TestMemberLookup(TestCase):
+    """
+    Test filtering queryset on composite type members.
+    """
+
+    def test_value(self):
+        """Test finding a record by composite member value."""
+        t = SimpleType(a=1, b="β ☃", c=datetime.datetime(1985, 10, 26, 9, 0))
+        m = SimpleModel(test_field=t)
+        m.save()
+
+        self.assertEqual(SimpleModel.objects.get(test_field__a=1), m)
+
+    def test_comparison(self):
+        """Test finding a record by comparison on a composite member value."""
+        t = SimpleType(a=1, b="β ☃", c=datetime.datetime(1985, 10, 26, 9, 0))
+        m = SimpleModel(test_field=t)
+        m.save()
+        t.a = 3
+        SimpleModel.objects.create(test_field=t)
+
+        self.assertEqual(SimpleModel.objects.get(test_field__a__lt=2), m)
+
+    def test_renamed(self):
+        """Test finding a record by composite member value with a different ORM name."""
+        t = RenamedMemberType(orm_name="foo")
+        m = RenamedMemberModel(field=t)
+        m.save()
+
+        self.assertEqual(RenamedMemberModel.objects.get(field__orm_name="foo"), m)
